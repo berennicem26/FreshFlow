@@ -1,0 +1,43 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "typecheck-on-save",
+      "trigger": "PostFileSave",
+      "matcher": "\\.(ts|tsx)$",
+      "action": {
+        "type": "command",
+        "command": "npx tsc --noEmit",
+        "timeout": 30
+      }
+    },
+    {
+      "name": "verify-invariants-on-core-save",
+      "trigger": "PostFileSave",
+      "matcher": "lib/core/.*\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "npx vitest run tests/property/",
+        "timeout": 45
+      }
+    },
+    {
+      "name": "pricing-safety-guard",
+      "trigger": "PostFileSave",
+      "matcher": "lib/core/(pricingEngine|shelfLifeCalculator)\\.ts$",
+      "action": {
+        "type": "agent",
+        "prompt": "Core pricing or shelf-life calculation was modified. Verify that universal price boundedness (costBasis <= price <= MSRP), salvage floor clamping, and discount monotonicity remain strictly preserved."
+      }
+    },
+    {
+      "name": "test-gate-on-task-complete",
+      "trigger": "PostTaskExec",
+      "action": {
+        "type": "command",
+        "command": "npm test",
+        "timeout": 60
+      }
+    }
+  ]
+}
