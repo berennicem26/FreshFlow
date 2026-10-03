@@ -10,21 +10,21 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
 
 ## Tasks
 
-- [ ] 1. Phase 1 — Functional Core: Thermal & Shelf-Life Calculators
-  - [ ] 1.1 Define shared TypeScript interfaces in `lib/types.ts`
+- [x] 1. Phase 1 — Functional Core: Thermal & Shelf-Life Calculators
+  - [x] 1.1 Define shared TypeScript interfaces in `lib/types.ts`
     - Export all interfaces and types from the Data Models section of the design: `ProductCategory`, `TemperatureReading`, `PerishableBatch`, `ThermalDecayFactors`, `MarkdownTier`, `PricingDecision`, `DonationManifest`, `WeatherSyncRecord`, `AuditEntry`
     - All fields must use `readonly` as specified in the design
     - This file is the single source of truth imported by every other module
     - _Requirements: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10_
 
-  - [ ] 1.2 Implement `computeThermalDecayFactor` in `lib/core/thermalCalculator.ts`
+  - [x] 1.2 Implement `computeThermalDecayFactor` in `lib/core/thermalCalculator.ts`
     - Export the `ThermalResult` discriminated union type (`{ ok: true; value: ThermalDecayFactors } | { ok: false; error: string }`)
     - Implement Arrhenius path: `decayFactor = exp(−Ea/R × (1/T_mean_K − 1/T_ref_K))` where `Ea = activationEnergyKJ × 1000`, `R = 8.314`, temperatures converted to Kelvin
     - Implement Q10 path: `decayFactor = q10 ^ ((T_mean − T_ref) / 10)`, used when `q10Coefficient` is in `[1.0, 5.0]`
     - Validate: empty/absent history → `"temperatureHistory must be non-empty"`; any celsius < −30 or > 60 → `"celsius value {v} at index {i} is out of range [−30, 60]"`; q10 outside `[1.0, 5.0]` → `"q10Coefficient {v} is outside valid range [1.0, 5.0]"`; `activationEnergyKJ` outside `[10, 200]` → `"activationEnergyKJ {v} is outside valid range [10, 200]"`
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
 
-  - [ ] 1.3 Implement `computeEffectiveDte` and `sellThroughProbability` in `lib/core/shelfLifeCalculator.ts`
+  - [x] 1.3 Implement `computeEffectiveDte` and `sellThroughProbability` in `lib/core/shelfLifeCalculator.ts`
     - Export `ShelfLifeResult` discriminated union type
     - Compute `nominalRemainingDays = (Date.parse(expiryDateIso) − Date.parse(now)) / 86_400_000`; accept optional `nowIso` for test injection
     - If `nominalRemainingDays <= 0`: return `effectiveDte = 0.0`; else `effectiveDte = nominalRemainingDays / decayFactor`
@@ -32,51 +32,51 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Validate: `decayFactor <= 0` → `"computedDecayFactor must be positive"`; `quantityOnHand <= 0` → `"quantityOnHand must be greater than zero"`; `dailySalesVelocity < 0` → `"dailySalesVelocity must be non-negative"`
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
 
-  - [ ]* 1.4 Write property tests for thermal monotonicity (Property 1)
+  - [x] 1.4 Write property tests for thermal monotonicity (Property 1)
     - **Property 1: Thermal monotonicity** — for identical `ThermalDecayFactors`, the history with a higher mean above `referenceTemperatureCelsius` must produce a strictly greater `computedDecayFactor`
     - Define fast-check arbitraries in `tests/arbitraries.ts`: `arbTemperatureReading` (celsius in [−30, 60]), `arbTemperatureHistory` (minLength 1, maxLength 168), `arbThermalFactorsArrhenius`, `arbThermalFactorsQ10`
     - Use `{ numRuns: 500 }` for this property
     - **Validates: Requirements 1.7**
 
-  - [ ]* 1.5 Write property test for reference temperature identity (Property 2)
+  - [x] 1.5 Write property test for reference temperature identity (Property 2)
     - **Property 2: Reference temperature identity** — when history mean equals `referenceTemperatureCelsius` within 1×10⁻⁹, `computedDecayFactor` must be in `[1 − 1×10⁻⁹, 1 + 1×10⁻⁹]`
     - Clamp all history readings to `T_ref` value to construct the identity input
     - **Validates: Requirements 1.2**
 
-  - [ ]* 1.6 Write property test for shelf-life inverse monotonicity (Property 3)
+  - [x] 1.6 Write property test for shelf-life inverse monotonicity (Property 3)
     - **Property 3: Shelf-life inverse monotonicity** — for the same batch with positive `nominalRemainingDays`, a higher `decayFactor` must produce a lower or equal `effectiveDte`
     - Define `arbPerishableBatch` arbitrary in `tests/arbitraries.ts` with valid `costBasisPerUnit < msrpPerUnit`, positive `quantityOnHand`, and non-negative `dailySalesVelocity`
     - **Validates: Requirements 2.8**
 
-  - [ ]* 1.7 Write property test for sell-through probability bounds (Property 8)
+  - [x] 1.7 Write property test for sell-through probability bounds (Property 8)
     - **Property 8: STP bounds** — `sellThroughProbability` must always be in `[0.0, 1.0]` for any valid input
     - Use `arbPerishableBatch` with generated positive `decayFactor` values
     - **Validates: Requirements 2.6**
 
-  - [ ]* 1.8 Write unit tests for `thermalCalculator` and `shelfLifeCalculator`
+  - [x] 1.8 Write unit tests for `thermalCalculator` and `shelfLifeCalculator`
     - `thermalCalculator`: empty history returns error; celsius −31 returns error at correct index; Q10 path with coefficient 2.0 produces expected value; Arrhenius path with known Ea produces expected value
     - `shelfLifeCalculator`: expired batch returns `effectiveDte = 0`; `decayFactor = 1.0` returns `nominalRemainingDays`; `decayFactor = 2.0` halves DTE; zero `quantityOnHand` returns error
     - Place tests in `tests/core/thermalCalculator.test.ts` and `tests/core/shelfLifeCalculator.test.ts`
     - _Requirements: 1.4, 1.6, 2.2, 2.3, 2.5, 2.7_
 
-  - [ ] 1.9 Phase 1 checkpoint — ensure all tests pass
+  - [x] 1.9 Phase 1 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 1 tests pass with zero failures
 
 ---
 
 - [ ] 2. Phase 2 — Functional Core: Pricing Engine
-  - [ ] 2.1 Implement `evaluatePricingTier` in `lib/core/pricingEngine.ts`
+  - [~] 2.1 Implement `evaluatePricingTier` in `lib/core/pricingEngine.ts`
     - Evaluate conditions in descending urgency order and return on first match: `DONATION` (dte ≤ 1.0 AND stp < 0.1) → `TIER_3` (dte ≤ 1.0) → `TIER_2` (dte ≤ 2.0) → `TIER_1` (dte ≤ 3.0 AND stp < 0.8) → `NONE`
     - Export `PricingResult` discriminated union type
     - _Requirements: 3.1, 4.1, 5.1, 5.4, 5.5_
 
-  - [ ] 2.2 Implement `computeDiscountedPrice` in `lib/core/pricingEngine.ts`
+  - [~] 2.2 Implement `computeDiscountedPrice` in `lib/core/pricingEngine.ts`
     - Apply discount rates: `TIER_1 = 0.15`, `TIER_2 = 0.35`, `TIER_3 = 0.50`, `NONE = 0.00`
     - Clamp: if `raw < salvageFloor` → return `salvageFloor`; if `raw > msrp` → return `msrp` (defensive ceiling)
     - Always return a value in `[salvageFloor, msrp]`
     - _Requirements: 3.2, 4.2, 5.2, 8.1, 8.2, 8.3_
 
-  - [ ] 2.3 Implement `buildPricingDecision` in `lib/core/pricingEngine.ts`
+  - [~] 2.3 Implement `buildPricingDecision` in `lib/core/pricingEngine.ts`
     - Validate `costBasisPerUnit >= msrpPerUnit` → return `{ ok: false, error: "costBasisPerUnit must be strictly less than msrpPerUnit" }`
     - For `DONATION` tier: set `computedPricePerUnit = null`, `boundednessVerified = false`
     - For all other tiers: call `computeDiscountedPrice`, set `boundednessVerified = true` after clamping, build `rationale` string describing the tier and any salvage floor clamp
@@ -102,20 +102,20 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/core/pricingEngine.test.ts`
     - _Requirements: 3.1, 3.3, 3.4, 4.1, 4.3, 5.1, 5.4, 8.4, 8.7_
 
-  - [ ] 2.7 Phase 2 checkpoint — ensure all tests pass
+  - [~] 2.7 Phase 2 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 2 tests pass with zero failures
 
 ---
 
 - [ ] 3. Phase 3 — Functional Core: Donation Router & Tax Valuator
-  - [ ] 3.1 Implement `shouldDonate`, `selectNearestFoodBank`, and `buildDonationManifest` in `lib/core/donationRouter.ts`
+  - [~] 3.1 Implement `shouldDonate`, `selectNearestFoodBank`, and `buildDonationManifest` in `lib/core/donationRouter.ts`
     - `shouldDonate`: returns `true` if `effectiveDte < 0.5` OR (`sellThroughProbability < 0.05` AND `effectiveDte <= 1.0`)
     - `selectNearestFoodBank`: filter for `isActive = true`, compute Haversine distance for each, return the closest; return `null` if none active. Haversine: `R = 6371`, use `atan2(sqrt(a), sqrt(1−a))` formula from the design
     - `buildDonationManifest`: set `triggerReason = 'effective_dte_below_threshold'` when `effectiveDte < 0.5` (takes precedence); `'sell_through_impossible'` otherwise; set `donatedQuantityUnits = quantityOnHand`; if no active bank exists, return `{ ok: false, error: ... }`
     - Export `DonationResult` discriminated union and `FoodBank` interface
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ] 3.2 Implement `computeIrsDeduction` in `lib/core/taxValuator.ts`
+  - [~] 3.2 Implement `computeIrsDeduction` in `lib/core/taxValuator.ts`
     - Validate: `donatedQuantityUnits <= 0` → `"donatedQuantityUnits must be a positive integer"`; `fairMarketValuePerUnit <= 0` → `"fairMarketValuePerUnit must be positive"`; `costBasisTotal < 0` → `"costBasisTotal must be non-negative"`
     - Formula: if `totalFairMarketValue <= costBasisTotal` → `irsDeductionAmount = costBasisTotal`; else compute `base = costBasisTotal + 0.5 × (totalFairMarketValue − costBasisTotal)`, cap at `2 × costBasisTotal`
     - Assign `irsFormReference`: `totalFairMarketValue < 500` → `'IRS Form 8283, Section A'`; `>= 500` → `'IRS Form 8283, Section B'`
@@ -140,20 +140,20 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/core/donationRouter.test.ts` and `tests/core/taxValuator.test.ts`
     - _Requirements: 6.1, 6.2, 6.3, 6.5, 7.3, 7.4, 7.6_
 
-  - [ ] 3.6 Phase 3 checkpoint — ensure all tests pass
+  - [~] 3.6 Phase 3 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 3 tests pass with zero failures
 
 ---
 
 - [ ] 4. Phase 4 — Imperative Shell: SQLite Audit Ledger
-  - [ ] 4.1 Create SQLite schema in `lib/db/schema.sql`
+  - [~] 4.1 Create SQLite schema in `lib/db/schema.sql`
     - Create `audit_entries` table with columns: `entry_id TEXT PRIMARY KEY`, `entry_type TEXT CHECK (...)`, `batch_id TEXT`, `store_id TEXT NOT NULL`, `occurred_at TEXT NOT NULL`, `payload TEXT NOT NULL`
     - Create indexes: `idx_audit_batch_id` on `(batch_id, occurred_at ASC)` and `idx_audit_store_type` on `(store_id, entry_type, occurred_at DESC)`
     - Create append-only triggers `prevent_update_audit` (BEFORE UPDATE) and `prevent_delete_audit` (BEFORE DELETE) using `RAISE(ABORT, ...)`
     - All DDL uses `IF NOT EXISTS` for idempotent restarts
     - _Requirements: 9.8_
 
-  - [ ] 4.2 Implement `AuditLedger` class in `lib/db/auditLedger.ts`
+  - [~] 4.2 Implement `AuditLedger` class in `lib/db/auditLedger.ts`
     - Install `better-sqlite3` and `@types/better-sqlite3` as dependencies
     - Constructor accepts `AuditLedgerConfig` with `dbPath`; run `schema.sql` via `db.exec()` on startup
     - `insertEntry`: generate `entryId` via `crypto.randomUUID()`, set `occurredAtIso` to `new Date().toISOString()`, serialize `payload` to JSON, insert row
@@ -161,7 +161,7 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - `close()`: close the database connection
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.6, 9.7_
 
-  - [ ] 4.3 Implement exponential back-off retry logic in `AuditLedger.insertEntry`
+  - [~] 4.3 Implement exponential back-off retry logic in `AuditLedger.insertEntry`
     - Wrap the insert in a retry loop: up to 3 retries after initial failure; wait `100 × 2^attempt` ms between attempts (100 ms, 200 ms, 400 ms), capped at 1600 ms per interval
     - After 4 total attempts all failed, throw `AuditLedgerInsertError: "failed after 3 retries"`
     - Export `AuditLedgerInsertError` as a named error class extending `Error`
@@ -177,20 +177,20 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/db/auditLedger.test.ts`
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8_
 
-  - [ ] 4.5 Phase 4 checkpoint — ensure all tests pass
+  - [~] 4.5 Phase 4 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 4 tests pass with zero failures
 
 ---
 
 - [ ] 5. Phase 5 — Imperative Shell: Weather Sync
-  - [ ] 5.1 Implement `WeatherSync` class in `lib/shell/weatherSync.ts`
+  - [~] 5.1 Implement `WeatherSync` class in `lib/shell/weatherSync.ts`
     - Constructor accepts an `AuditLedger` instance
     - Implement coordinate validation: lat outside `[−90, 90]` → emit `'config_error'` event with `field: 'latitude'`; lon outside `[−180, 180]` → emit with `field: 'longitude'`; throw after emitting
     - Implement 60-minute sync interval guard in `fetchAndStore`: if last sync for `storeId` was < 60 min ago, return the cached `WeatherSyncRecord` from the ledger
     - Implement `forceSync` that bypasses the interval guard
     - _Requirements: 10.6, 10.7_
 
-  - [ ] 5.2 Implement Open-Meteo MCP call and retry logic in `WeatherSync`
+  - [~] 5.2 Implement Open-Meteo MCP call and retry logic in `WeatherSync`
     - Call `mcpClient.callTool('get_forecast', { latitude, longitude, hourly: ['temperature_2m'], forecast_days: 2, timezone: 'UTC' })`
     - Implement `transformToWeatherSyncRecord`: map `hourly.time[i]` + `hourly.temperature_2m[i]` to `TemperatureReading[]`; set `syncId = randomUUID()`, `fetchedAtIso = new Date().toISOString()`, `forecastHorizonHours = readings.length`
     - On success: insert `WeatherSyncRecord` into `AuditLedger` as `WEATHER_SYNC` entry, return record
@@ -209,47 +209,47 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/shell/weatherSync.test.ts`
     - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6, 10.7_
 
-  - [ ] 5.4 Phase 5 checkpoint — ensure all tests pass
+  - [~] 5.4 Phase 5 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 5 tests pass with zero failures
 
 ---
 
 - [ ] 6. Phase 6 — Next.js API Routes & Dashboard
-  - [ ] 6.1 Create Zod validation schemas for all request/response bodies
+  - [~] 6.1 Create Zod validation schemas for all request/response bodies
     - Define schemas in `lib/schemas.ts`: `PerishableBatchSchema`, `EvaluateRequestSchema`, `DonationDispatchSchema`, `AuditQuerySchema`, `WeatherSyncRequestSchema`
     - Export inferred TypeScript types alongside each schema
     - _Requirements: all API-touching requirements_
 
-  - [ ] 6.2 Implement batch API routes in `app/api/batches/route.ts`
+  - [~] 6.2 Implement batch API routes in `app/api/batches/route.ts`
     - `POST /api/batches`: parse and validate body with `PerishableBatchSchema`; persist batch (in-memory store or SQLite table); return 201 with the created batch
     - `GET /api/batches`: return list of all registered batches
     - Return 400 with Zod error details on validation failure; 500 on unhandled shell errors
     - _Requirements: 9.1_
 
-  - [ ] 6.3 Implement batch evaluation route in `app/api/batches/[batchId]/evaluate/route.ts`
+  - [~] 6.3 Implement batch evaluation route in `app/api/batches/[batchId]/evaluate/route.ts`
     - `POST /api/batches/[batchId]/evaluate`: retrieve batch; call `WeatherSync.fetchAndStore` → `computeThermalDecayFactor` → `computeEffectiveDte` → `buildPricingDecision`; if `tier = 'DONATION'` call `buildDonationManifest` → `computeIrsDeduction`; insert all results into `AuditLedger`; return full `PricingDecision` (and `DonationManifest` if applicable)
     - When using cached weather data, append rationale note: `"Pricing decision based on cached weather data (fetchedAt: {fetchedAtIso})"`
     - Return 404 if batch not found; 400 on validation errors; 500 on shell errors
     - _Requirements: 3, 4, 5, 6, 7, 8, 9, 10.8_
 
-  - [ ] 6.4 Implement donation and audit routes
+  - [~] 6.4 Implement donation and audit routes
     - `app/api/donations/route.ts`: `GET` returns all `DonationManifest` audit entries; `POST /api/donations` with `{ manifestId }` marks a manifest as dispatched (insert a follow-up audit entry)
     - `app/api/audit/route.ts`: `GET` with `?batchId=` query param calls `AuditLedger.queryEntries(batchId)` and returns the audit trail; return 400 if `batchId` is missing
     - _Requirements: 9.6_
 
-  - [ ] 6.5 Implement weather sync API route in `app/api/weather/sync/route.ts`
+  - [~] 6.5 Implement weather sync API route in `app/api/weather/sync/route.ts`
     - `POST /api/weather/sync`: validate body has `storeId`, `latitude`, `longitude`; call `WeatherSync.forceSync`; return the resulting `WeatherSyncRecord`
     - Return 400 on validation failure; 503 if `WeatherSyncError` is thrown (no valid cache)
     - _Requirements: 10.1, 10.7_
 
-  - [ ] 6.6 Build dashboard page at `app/dashboard/page.tsx`
+  - [~] 6.6 Build dashboard page at `app/dashboard/page.tsx`
     - Server component that fetches active batches from `/api/batches` and their latest `PricingDecision` from the audit ledger
     - Render a table with columns: batch name, SKU, expiry date, effective DTE countdown, tier badge, computed price
     - Tier badge colours: green (`NONE`), yellow (`TIER_1`), orange (`TIER_2`), red (`TIER_3`), purple (`DONATION`)
     - Use Tailwind CSS classes for badge colours; ensure colour is not the sole indicator (include tier label text for accessibility)
     - _Requirements: 3, 4, 5_
 
-  - [ ] 6.7 Build donation manifest page at `app/donations/page.tsx`
+  - [~] 6.7 Build donation manifest page at `app/donations/page.tsx`
     - Server component that fetches all `DonationManifest` audit entries
     - Render a table with columns: batch ID, recipient food bank, donated quantity, total FMV, IRS deduction amount, IRS form reference, trigger reason, generated date
     - Show an aggregated total of all `irsDeductionAmount` values as a summary line
@@ -261,7 +261,7 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/e2e/evaluationPipeline.test.ts`; use a test SQLite database to avoid side effects
     - _Requirements: 9.1, 9.2_
 
-  - [ ] 6.9 Final build verification
+  - [~] 6.9 Final build verification
     - Run `npm run build` and confirm zero TypeScript errors and a clean production build
     - Run `npm test` and confirm all tests pass
 
