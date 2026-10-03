@@ -7,11 +7,15 @@
 
 import { NextResponse } from 'next/server';
 import { PerishableBatchSchema } from '@/lib/schemas';
-import { getBatchStore } from '@/lib/services';
+import { getBatchStore, resetBatchStore } from '@/lib/services';
 import type { PerishableBatch } from '@/lib/types';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    if (url.searchParams.get('reset') === 'true') {
+      resetBatchStore();
+    }
     const store = getBatchStore();
     const batches = Array.from(store.values());
     return NextResponse.json({ ok: true, batches });

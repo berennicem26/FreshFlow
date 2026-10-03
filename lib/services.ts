@@ -69,10 +69,13 @@ export const REGISTERED_FOOD_BANKS: FoodBank[] = [
 // Seeded batches
 function getInitialBatches(): Map<string, PerishableBatch> {
   const batches = new Map<string, PerishableBatch>();
-  const now = new Date('2026-10-03T12:00:00Z');
+  const now = new Date();
 
   const add = (batch: PerishableBatch) => batches.set(batch.batchId, batch);
 
+  // 1. Strawberries (produce, Q10 = 2.2):
+  // At 20°C: decay factor 3.53x, DTE_eff = 4.2 / 3.53 = 1.19d -> Tier 2 (-35%, $3.24)
+  // At 32°C: decay factor 9.09x, DTE_eff = 4.2 / 9.09 = 0.46d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0001',
     sku: 'SKU-BERRY-01',
@@ -80,15 +83,17 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     category: 'produce',
     storeId: 'STORE-LA-01',
     nominalShelfLifeDays: 5,
-    expiryDateIso: new Date(now.getTime() + 1.2 * 86_400_000).toISOString(),
+    expiryDateIso: new Date(now.getTime() + 4.2 * 86_400_000).toISOString(),
     costBasisPerUnit: 2.2,
     msrpPerUnit: 4.99,
     quantityOnHand: 45,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 24.5 }],
+    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
     dailySalesVelocity: 12,
     createdAt: now.toISOString(),
   });
 
+  // 2. Salmon (meat, Q10 = 2.8):
+  // At 20°C: decay factor 5.17x, DTE_eff = 1.5 / 5.17 = 0.29d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0002',
     sku: 'SKU-SALMON-02',
@@ -96,7 +101,7 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     category: 'meat',
     storeId: 'STORE-LA-01',
     nominalShelfLifeDays: 3,
-    expiryDateIso: new Date(now.getTime() + 0.8 * 86_400_000).toISOString(),
+    expiryDateIso: new Date(now.getTime() + 1.5 * 86_400_000).toISOString(),
     costBasisPerUnit: 5.5,
     msrpPerUnit: 11.99,
     quantityOnHand: 18,
@@ -105,6 +110,8 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     createdAt: now.toISOString(),
   });
 
+  // 3. Salad (prepared, Q10 = 2.4):
+  // At 20°C: decay factor 4.07x, DTE_eff = 1.4 / 4.07 = 0.34d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0003',
     sku: 'SKU-SALAD-03',
@@ -112,15 +119,18 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     category: 'prepared',
     storeId: 'STORE-LA-01',
     nominalShelfLifeDays: 4,
-    expiryDateIso: new Date(now.getTime() + 0.35 * 86_400_000).toISOString(),
+    expiryDateIso: new Date(now.getTime() + 1.4 * 86_400_000).toISOString(),
     costBasisPerUnit: 2.9,
     msrpPerUnit: 6.99,
     quantityOnHand: 30,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 21.0 }],
+    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
     dailySalesVelocity: 5,
     createdAt: now.toISOString(),
   });
 
+  // 4. Whole Milk (dairy, Q10 = 2.5):
+  // At 20°C: decay factor 4.33x, DTE_eff = 4.6 / 4.33 = 1.06d -> Tier 2 (-35%, $2.92)
+  // At 32°C: decay factor 12.96x, DTE_eff = 4.6 / 12.96 = 0.35d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0004',
     sku: 'SKU-MILK-04',
@@ -128,7 +138,7 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     category: 'dairy',
     storeId: 'STORE-LA-01',
     nominalShelfLifeDays: 10,
-    expiryDateIso: new Date(now.getTime() + 2.5 * 86_400_000).toISOString(),
+    expiryDateIso: new Date(now.getTime() + 4.6 * 86_400_000).toISOString(),
     costBasisPerUnit: 2.1,
     msrpPerUnit: 4.49,
     quantityOnHand: 55,
@@ -137,6 +147,9 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     createdAt: now.toISOString(),
   });
 
+  // 5. Artisan Sourdough (bakery, Q10 = 2.0):
+  // At 20°C: decay factor 3.03x, DTE_eff = 2.6 / 3.03 = 0.86d -> Tier 3 (-50%, $2.75)
+  // At 32°C: decay factor 6.96x, DTE_eff = 2.6 / 6.96 = 0.37d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0005',
     sku: 'SKU-BREAD-05',
@@ -144,7 +157,7 @@ function getInitialBatches(): Map<string, PerishableBatch> {
     category: 'bakery',
     storeId: 'STORE-LA-01',
     nominalShelfLifeDays: 4,
-    expiryDateIso: new Date(now.getTime() + 1.8 * 86_400_000).toISOString(),
+    expiryDateIso: new Date(now.getTime() + 2.6 * 86_400_000).toISOString(),
     costBasisPerUnit: 1.8,
     msrpPerUnit: 5.49,
     quantityOnHand: 22,
@@ -156,9 +169,20 @@ function getInitialBatches(): Map<string, PerishableBatch> {
   return batches;
 }
 
+export function resetBatchStore(): Map<string, PerishableBatch> {
+  global.__freshflow_batches = getInitialBatches();
+  return global.__freshflow_batches;
+}
+
 export function getBatchStore(): Map<string, PerishableBatch> {
   if (!global.__freshflow_batches) {
     global.__freshflow_batches = getInitialBatches();
+  } else {
+    // If batches have expired or are past their nominal shelf life, auto-refresh
+    const first = global.__freshflow_batches.values().next().value;
+    if (first && Date.parse(first.expiryDateIso) < Date.now()) {
+      global.__freshflow_batches = getInitialBatches();
+    }
   }
   return global.__freshflow_batches;
 }

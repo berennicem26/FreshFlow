@@ -88,10 +88,20 @@ export async function POST(
       }
     }
 
-    // Step 2: Compute thermal decay factor
+    // Step 2: Compute thermal decay factor (category-specific Q10)
+    const CATEGORY_Q10: Record<string, number> = {
+      dairy: 2.5,
+      produce: 2.2,
+      meat: 2.8,
+      bakery: 2.0,
+      prepared: 2.4,
+    };
+
+    const q10Coefficient = CATEGORY_Q10[batch.category.toLowerCase()] ?? 2.5;
+
     const thermalFactorsConfig = {
       referenceTemperatureCelsius: 4.0,
-      q10Coefficient: 2.5,
+      q10Coefficient,
       activationEnergyKJ: 50,
     };
 
@@ -143,18 +153,22 @@ export async function POST(
       };
     }
 
-    // Persist Pricing Decision to AuditLedger
-    const ledger = getAuditLedger();
-    await ledger.insertEntry({
-      entryType: 'PRICING_DECISION',
-      batchId: batch.batchId,
-      storeId: batch.storeId,
-      payload: decision,
-    });
-
     // Step 5: Check Donation Eligibility
     let donationManifest = null;
-    if (decision.tier === 'DONATION' || shouldDonate(effectiveDte, sellThroughProbability)) {
+    const isDonationCandidate =
+      decision.tier === 'DONATION' || shouldDonate(effectiveDte, sellThroughProbability);
+
+    if (isDonationCandidate) {
+      if (decision.tier !== 'DONATION') {
+        decision = {
+          ...decision,
+          tier: 'DONATION',
+          computedPricePerUnit: null,
+          discountRate: 0,
+          rationale: `Batch routed to emergency food bank donation (effective DTE < 0.5 days). ${decision.rationale}`,
+        };
+      }
+
       const storeCoords = {
         latitude: options.latitude ?? 34.0522,
         longitude: options.longitude ?? -118.2437,
@@ -172,13 +186,25 @@ export async function POST(
 
       if (manifestResult.ok) {
         donationManifest = manifestResult.value;
-        await ledger.insertEntry({
-          entryType: 'DONATION_MANIFEST',
-          batchId: batch.batchId,
-          storeId: batch.storeId,
-          payload: donationManifest,
-        });
       }
+    }
+
+    // Persist Pricing Decision and Manifest to AuditLedger
+    const ledger = getAuditLedger();
+    await ledger.insertEntry({
+      entryType: 'PRICING_DECISION',
+      batchId: batch.batchId,
+      storeId: batch.storeId,
+      payload: decision,
+    });
+
+    if (donationManifest) {
+      await ledger.insertEntry({
+        entryType: 'DONATION_MANIFEST',
+        batchId: batch.batchId,
+        storeId: batch.storeId,
+        payload: donationManifest,
+      });
     }
 
     return NextResponse.json({

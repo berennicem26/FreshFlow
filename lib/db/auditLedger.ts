@@ -13,8 +13,6 @@
 
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
 import type { AuditEntry } from '../types';
 
 const DEFAULT_SCHEMA_SQL = `
@@ -85,22 +83,7 @@ export class AuditLedger {
     this.db = new Database(config.dbPath);
 
     // Execute schema.sql to create tables, indexes, and triggers
-    let schemaSql = DEFAULT_SCHEMA_SQL;
-    try {
-      const candidates = [
-        join(process.cwd(), 'lib', 'db', 'schema.sql'),
-        join(__dirname, 'schema.sql'),
-      ];
-      for (const p of candidates) {
-        if (existsSync(p)) {
-          schemaSql = readFileSync(p, 'utf-8');
-          break;
-        }
-      }
-    } catch {
-      // Fallback to embedded schema
-    }
-    this.db.exec(schemaSql);
+    this.db.exec(DEFAULT_SCHEMA_SQL);
   }
 
   /**

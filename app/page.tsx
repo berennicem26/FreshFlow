@@ -28,7 +28,7 @@ interface EvaluationState {
 export default function FreshFlowDashboard() {
   const [batches, setBatches] = useState<PerishableBatch[]>([]);
   const [evaluations, setEvaluations] = useState<Record<string, EvaluationState>>({});
-  const [ambientTemp, setAmbientTemp] = useState<number>(24.0);
+  const [ambientTemp, setAmbientTemp] = useState<number>(20.0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -37,12 +37,12 @@ export default function FreshFlowDashboard() {
   useEffect(() => {
     async function loadBatches() {
       try {
-        const res = await fetch('/api/batches');
+        const res = await fetch('/api/batches?reset=true');
         const data = await res.json();
         if (data.ok && Array.isArray(data.batches)) {
           setBatches(data.batches);
           // Auto evaluate all batches with current ambient temperature
-          evaluateAll(data.batches, ambientTemp);
+          evaluateAll(data.batches, 20.0);
         }
       } catch (err) {
         console.error('Failed to load batches:', err);
