@@ -214,54 +214,54 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
 
 ---
 
-- [ ] 6. Phase 6 — Next.js API Routes & Dashboard
-  - [~] 6.1 Create Zod validation schemas for all request/response bodies
+- [x] 6. Phase 6 — Next.js API Routes & Dashboard
+  - [x] 6.1 Create Zod validation schemas for all request/response bodies
     - Define schemas in `lib/schemas.ts`: `PerishableBatchSchema`, `EvaluateRequestSchema`, `DonationDispatchSchema`, `AuditQuerySchema`, `WeatherSyncRequestSchema`
     - Export inferred TypeScript types alongside each schema
     - _Requirements: all API-touching requirements_
 
-  - [~] 6.2 Implement batch API routes in `app/api/batches/route.ts`
+  - [x] 6.2 Implement batch API routes in `app/api/batches/route.ts`
     - `POST /api/batches`: parse and validate body with `PerishableBatchSchema`; persist batch (in-memory store or SQLite table); return 201 with the created batch
     - `GET /api/batches`: return list of all registered batches
     - Return 400 with Zod error details on validation failure; 500 on unhandled shell errors
     - _Requirements: 9.1_
 
-  - [~] 6.3 Implement batch evaluation route in `app/api/batches/[batchId]/evaluate/route.ts`
+  - [x] 6.3 Implement batch evaluation route in `app/api/batches/[batchId]/evaluate/route.ts`
     - `POST /api/batches/[batchId]/evaluate`: retrieve batch; call `WeatherSync.fetchAndStore` → `computeThermalDecayFactor` → `computeEffectiveDte` → `buildPricingDecision`; if `tier = 'DONATION'` call `buildDonationManifest` → `computeIrsDeduction`; insert all results into `AuditLedger`; return full `PricingDecision` (and `DonationManifest` if applicable)
     - When using cached weather data, append rationale note: `"Pricing decision based on cached weather data (fetchedAt: {fetchedAtIso})"`
     - Return 404 if batch not found; 400 on validation errors; 500 on shell errors
     - _Requirements: 3, 4, 5, 6, 7, 8, 9, 10.8_
 
-  - [~] 6.4 Implement donation and audit routes
+  - [x] 6.4 Implement donation and audit routes
     - `app/api/donations/route.ts`: `GET` returns all `DonationManifest` audit entries; `POST /api/donations` with `{ manifestId }` marks a manifest as dispatched (insert a follow-up audit entry)
     - `app/api/audit/route.ts`: `GET` with `?batchId=` query param calls `AuditLedger.queryEntries(batchId)` and returns the audit trail; return 400 if `batchId` is missing
     - _Requirements: 9.6_
 
-  - [~] 6.5 Implement weather sync API route in `app/api/weather/sync/route.ts`
+  - [x] 6.5 Implement weather sync API route in `app/api/weather/sync/route.ts`
     - `POST /api/weather/sync`: validate body has `storeId`, `latitude`, `longitude`; call `WeatherSync.forceSync`; return the resulting `WeatherSyncRecord`
     - Return 400 on validation failure; 503 if `WeatherSyncError` is thrown (no valid cache)
     - _Requirements: 10.1, 10.7_
 
-  - [~] 6.6 Build dashboard page at `app/dashboard/page.tsx`
+  - [x] 6.6 Build dashboard page at `app/dashboard/page.tsx`
     - Server component that fetches active batches from `/api/batches` and their latest `PricingDecision` from the audit ledger
     - Render a table with columns: batch name, SKU, expiry date, effective DTE countdown, tier badge, computed price
     - Tier badge colours: green (`NONE`), yellow (`TIER_1`), orange (`TIER_2`), red (`TIER_3`), purple (`DONATION`)
     - Use Tailwind CSS classes for badge colours; ensure colour is not the sole indicator (include tier label text for accessibility)
     - _Requirements: 3, 4, 5_
 
-  - [~] 6.7 Build donation manifest page at `app/donations/page.tsx`
+  - [x] 6.7 Build donation manifest page at `app/donations/page.tsx`
     - Server component that fetches all `DonationManifest` audit entries
     - Render a table with columns: batch ID, recipient food bank, donated quantity, total FMV, IRS deduction amount, IRS form reference, trigger reason, generated date
     - Show an aggregated total of all `irsDeductionAmount` values as a summary line
     - _Requirements: 6, 7_
 
-  - [ ]* 6.8 Write end-to-end smoke tests for the evaluation pipeline
+  - [x] 6.8 Write end-to-end smoke tests for the evaluation pipeline
     - Test: `POST /api/batches` → `POST /api/batches/{id}/evaluate` → `GET /api/audit?batchId={id}` returns at least one `PRICING_DECISION` entry
     - Test: evaluation with `effectiveDte <= 1.0` and `stp < 0.1` produces a `DONATION_MANIFEST` audit entry
     - Place tests in `tests/e2e/evaluationPipeline.test.ts`; use a test SQLite database to avoid side effects
     - _Requirements: 9.1, 9.2_
 
-  - [~] 6.9 Final build verification
+  - [x] 6.9 Final build verification
     - Run `npm run build` and confirm zero TypeScript errors and a clean production build
     - Run `npm test` and confirm all tests pass
 
