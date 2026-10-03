@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "freshflow-inventory": {
+      "command": "node",
+      "args": ["scripts/mcp-inventory-server.mjs"],
+      "env": {
+        "AUDIT_DB_PATH": "data/freshflow.db"
+      },
+      "autoApprove": [
+        "get_perishable_inventory",
+        "evaluate_batch_markdown",
+        "route_donation_manifest",
+        "calculate_arrhenius_decay",
+        "query_audit_trail"
+      ]
+    }
+  }
+}
