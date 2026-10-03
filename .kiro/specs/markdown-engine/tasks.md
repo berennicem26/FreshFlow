@@ -145,15 +145,15 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
 
 ---
 
-- [ ] 4. Phase 4 — Imperative Shell: SQLite Audit Ledger
-  - [~] 4.1 Create SQLite schema in `lib/db/schema.sql`
+- [x] 4. Phase 4 — Imperative Shell: SQLite Audit Ledger
+  - [x] 4.1 Create SQLite schema in `lib/db/schema.sql`
     - Create `audit_entries` table with columns: `entry_id TEXT PRIMARY KEY`, `entry_type TEXT CHECK (...)`, `batch_id TEXT`, `store_id TEXT NOT NULL`, `occurred_at TEXT NOT NULL`, `payload TEXT NOT NULL`
     - Create indexes: `idx_audit_batch_id` on `(batch_id, occurred_at ASC)` and `idx_audit_store_type` on `(store_id, entry_type, occurred_at DESC)`
     - Create append-only triggers `prevent_update_audit` (BEFORE UPDATE) and `prevent_delete_audit` (BEFORE DELETE) using `RAISE(ABORT, ...)`
     - All DDL uses `IF NOT EXISTS` for idempotent restarts
     - _Requirements: 9.8_
 
-  - [~] 4.2 Implement `AuditLedger` class in `lib/db/auditLedger.ts`
+  - [x] 4.2 Implement `AuditLedger` class in `lib/db/auditLedger.ts`
     - Install `better-sqlite3` and `@types/better-sqlite3` as dependencies
     - Constructor accepts `AuditLedgerConfig` with `dbPath`; run `schema.sql` via `db.exec()` on startup
     - `insertEntry`: generate `entryId` via `crypto.randomUUID()`, set `occurredAtIso` to `new Date().toISOString()`, serialize `payload` to JSON, insert row
@@ -161,13 +161,13 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - `close()`: close the database connection
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.6, 9.7_
 
-  - [~] 4.3 Implement exponential back-off retry logic in `AuditLedger.insertEntry`
+  - [x] 4.3 Implement exponential back-off retry logic in `AuditLedger.insertEntry`
     - Wrap the insert in a retry loop: up to 3 retries after initial failure; wait `100 × 2^attempt` ms between attempts (100 ms, 200 ms, 400 ms), capped at 1600 ms per interval
     - After 4 total attempts all failed, throw `AuditLedgerInsertError: "failed after 3 retries"`
     - Export `AuditLedgerInsertError` as a named error class extending `Error`
     - _Requirements: 9.5_
 
-  - [ ]* 4.4 Write integration tests for `auditLedger`
+  - [x] 4.4 Write integration tests for `auditLedger`
     - Use an in-memory or temp-file SQLite database for test isolation
     - Round-trip: `insertEntry` for each `entryType` → `queryEntries` returns correct deserialized record
     - Ordering: insert three entries with known timestamps out of order → `queryEntries` returns them in ascending `occurredAtIso` order
@@ -177,7 +177,7 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/db/auditLedger.test.ts`
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8_
 
-  - [~] 4.5 Phase 4 checkpoint — ensure all tests pass
+  - [x] 4.5 Phase 4 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 4 tests pass with zero failures
 
 ---

@@ -1,0 +1,281 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Define shared TypeScript interfaces in `lib/types.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097046
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032105619
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032173830
+      }
+    ],
+    "1.2 Implement `computeThermalDecayFactor` in `lib/core/thermalCalculator.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097205
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032178162
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032577820
+      }
+    ],
+    "1.3 Implement `computeEffectiveDte` and `sellThroughProbability` in `lib/core/shelfLifeCalculator.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097344
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032180925
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032581412
+      }
+    ],
+    "1.9 Phase 1 checkpoint — ensure all tests pass": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097462
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032594417
+      },
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791033497029
+      }
+    ],
+    "2.1 Implement `evaluatePricingTier` in `lib/core/pricingEngine.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097566
+      }
+    ],
+    "2.2 Implement `computeDiscountedPrice` in `lib/core/pricingEngine.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097705
+      }
+    ],
+    "2.3 Implement `buildPricingDecision` in `lib/core/pricingEngine.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097809
+      }
+    ],
+    "2.7 Phase 2 checkpoint — ensure all tests pass": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032097934
+      }
+    ],
+    "3.1 Implement `shouldDonate`, `selectNearestFoodBank`, and `buildDonationManifest` in `lib/core/donationRouter.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098033
+      }
+    ],
+    "3.2 Implement `computeIrsDeduction` in `lib/core/taxValuator.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098137
+      }
+    ],
+    "3.6 Phase 3 checkpoint — ensure all tests pass": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098237
+      }
+    ],
+    "4.1 Create SQLite schema in `lib/db/schema.sql`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098374
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791034460435
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791034496182
+      }
+    ],
+    "4.2 Implement `AuditLedger` class in `lib/db/auditLedger.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098500
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791034501677
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791034670482
+      }
+    ],
+    "4.3 Implement exponential back-off retry logic in `AuditLedger.insertEntry`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098620
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791034675991
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791035257186
+      }
+    ],
+    "4.5 Phase 4 checkpoint — ensure all tests pass": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098730
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791035269493
+      },
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791035307313
+      }
+    ],
+    "5.1 Implement `WeatherSync` class in `lib/shell/weatherSync.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098840
+      }
+    ],
+    "5.2 Implement Open-Meteo MCP call and retry logic in `WeatherSync`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032098954
+      }
+    ],
+    "5.4 Phase 5 checkpoint — ensure all tests pass": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099096
+      }
+    ],
+    "6.1 Create Zod validation schemas for all request/response bodies": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099228
+      }
+    ],
+    "6.2 Implement batch API routes in `app/api/batches/route.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099373
+      }
+    ],
+    "6.3 Implement batch evaluation route in `app/api/batches/[batchId]/evaluate/route.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099511
+      }
+    ],
+    "6.4 Implement donation and audit routes": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099664
+      }
+    ],
+    "6.5 Implement weather sync API route in `app/api/weather/sync/route.ts`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099779
+      }
+    ],
+    "6.6 Build dashboard page at `app/dashboard/page.tsx`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032099910
+      }
+    ],
+    "6.7 Build donation manifest page at `app/donations/page.tsx`": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032100040
+      }
+    ],
+    "6.9 Final build verification": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791032100215
+      }
+    ],
+    "1. Phase 1 — Functional Core: Thermal & Shelf-Life Calculators": [
+      {
+        "executionId": "054b3f42-4a74-4f6c-a09a-90faeb0dce2f",
+        "chatSessionId": "sess_13089f23-21f8-4901-a265-ca7d0ee5c30e",
+        "timestamp": 1791033497161
+      }
+    ],
+    "4. Phase 4 — Imperative Shell: SQLite Audit Ledger": [
+      {
+        "executionId": "77e7590a-6cb8-409f-8949-836e0b6d9caa",
+        "chatSessionId": "sess_fc9800fe-57fa-4713-8faf-1d82f40cc2d0",
+        "timestamp": 1791035307457
+      }
+    ]
+  }
+}
