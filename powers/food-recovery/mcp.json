@@ -19,11 +19,8 @@
     },
     "fetch": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-fetch"],
-      "env": {
-        "FASTMCP_LOG_LEVEL": "ERROR"
-      }
+      "command": "node",
+      "args": ["scripts/mcp-fetch-server.mjs"]
     }
   }
 }
