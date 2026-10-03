@@ -88,8 +88,8 @@ export const arbPerishableBatch: fc.Arbitrary<PerishableBatch> = fc
   .map((raw) => {
     const baseDate = new Date('2026-10-03T12:00:00Z');
     const expiryDate = new Date(baseDate.getTime() + raw.expiryOffsetDays * 86_400_000);
-    const costBasis = Math.round(raw.costBasisPerUnit * 100) / 100;
-    const msrp = Math.round(costBasis * raw.msrpMarkupFactor * 100) / 100;
+    const costBasis = Number(raw.costBasisPerUnit.toFixed(2));
+    const msrp = Number(Math.max(costBasis + 0.5, costBasis * raw.msrpMarkupFactor).toFixed(2));
 
     return {
       batchId: raw.batchId,
@@ -100,7 +100,7 @@ export const arbPerishableBatch: fc.Arbitrary<PerishableBatch> = fc
       nominalShelfLifeDays: raw.nominalShelfLifeDays,
       expiryDateIso: expiryDate.toISOString(),
       costBasisPerUnit: costBasis,
-      msrpPerUnit: Math.max(costBasis + 0.5, msrp),
+      msrpPerUnit: msrp,
       quantityOnHand: raw.quantityOnHand,
       temperatureHistory: raw.temperatureHistory,
       dailySalesVelocity: raw.dailySalesVelocity,

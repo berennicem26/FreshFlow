@@ -64,37 +64,37 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
 
 ---
 
-- [ ] 2. Phase 2 — Functional Core: Pricing Engine
-  - [~] 2.1 Implement `evaluatePricingTier` in `lib/core/pricingEngine.ts`
+- [x] 2. Phase 2 — Functional Core: Pricing Engine
+  - [x] 2.1 Implement `evaluatePricingTier` in `lib/core/pricingEngine.ts`
     - Evaluate conditions in descending urgency order and return on first match: `DONATION` (dte ≤ 1.0 AND stp < 0.1) → `TIER_3` (dte ≤ 1.0) → `TIER_2` (dte ≤ 2.0) → `TIER_1` (dte ≤ 3.0 AND stp < 0.8) → `NONE`
     - Export `PricingResult` discriminated union type
     - _Requirements: 3.1, 4.1, 5.1, 5.4, 5.5_
 
-  - [~] 2.2 Implement `computeDiscountedPrice` in `lib/core/pricingEngine.ts`
+  - [x] 2.2 Implement `computeDiscountedPrice` in `lib/core/pricingEngine.ts`
     - Apply discount rates: `TIER_1 = 0.15`, `TIER_2 = 0.35`, `TIER_3 = 0.50`, `NONE = 0.00`
     - Clamp: if `raw < salvageFloor` → return `salvageFloor`; if `raw > msrp` → return `msrp` (defensive ceiling)
     - Always return a value in `[salvageFloor, msrp]`
     - _Requirements: 3.2, 4.2, 5.2, 8.1, 8.2, 8.3_
 
-  - [~] 2.3 Implement `buildPricingDecision` in `lib/core/pricingEngine.ts`
+  - [x] 2.3 Implement `buildPricingDecision` in `lib/core/pricingEngine.ts`
     - Validate `costBasisPerUnit >= msrpPerUnit` → return `{ ok: false, error: "costBasisPerUnit must be strictly less than msrpPerUnit" }`
     - For `DONATION` tier: set `computedPricePerUnit = null`, `boundednessVerified = false`
     - For all other tiers: call `computeDiscountedPrice`, set `boundednessVerified = true` after clamping, build `rationale` string describing the tier and any salvage floor clamp
     - Accept optional `evaluatedAtIso` for test injection; default to `new Date().toISOString()`
     - _Requirements: 3.5, 4.4, 5.1, 5.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ]* 2.4 Write property test for price boundedness (Property 4)
+  - [x] 2.4 Write property test for price boundedness (Property 4)
     - **Property 4: Price boundedness** — for any valid batch with `costBasisPerUnit < msrpPerUnit` at any non-DONATION tier, `computedPricePerUnit` must satisfy `costBasisPerUnit ≤ computedPricePerUnit ≤ msrpPerUnit` and `boundednessVerified = true`
     - Use `arbPerishableBatch` filtered to ensure `costBasis < msrp`; generate `effectiveDte` and `stp` values that produce non-DONATION tiers
     - Use `{ numRuns: 500 }`
     - **Validates: Requirements 8.1, 8.5, 8.6**
 
-  - [ ]* 2.5 Write property test for tier escalation (Property 5)
+  - [x] 2.5 Write property test for tier escalation (Property 5)
     - **Property 5: Tier escalation** — when a batch with a prior decision of `effectiveDte > 2.0` is re-evaluated with `effectiveDte ≤ 2.0`, the new tier must be `TIER_2` or higher urgency
     - Generate staged DTE pairs `(prev > 2.0, next ≤ 2.0)` with matching batches
     - **Validates: Requirements 4.5**
 
-  - [ ]* 2.6 Write unit tests for `pricingEngine`
+  - [x] 2.6 Write unit tests for `pricingEngine`
     - Boundary cases: DTE = 3.0 + STP = 0.79 → `TIER_1`; DTE = 3.0 + STP = 0.80 → `NONE`; DTE = 2.0 → `TIER_2`; DTE = 1.0 + STP = 0.15 → `TIER_3`; DTE = 1.0 + STP = 0.05 → `DONATION`
     - Salvage floor: TIER_3 at 50% drops below cost basis → clamped, rationale mentions salvage floor
     - Invalid input: `costBasis >= msrp` → error
@@ -102,45 +102,45 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/core/pricingEngine.test.ts`
     - _Requirements: 3.1, 3.3, 3.4, 4.1, 4.3, 5.1, 5.4, 8.4, 8.7_
 
-  - [~] 2.7 Phase 2 checkpoint — ensure all tests pass
+  - [x] 2.7 Phase 2 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 2 tests pass with zero failures
 
 ---
 
-- [ ] 3. Phase 3 — Functional Core: Donation Router & Tax Valuator
-  - [~] 3.1 Implement `shouldDonate`, `selectNearestFoodBank`, and `buildDonationManifest` in `lib/core/donationRouter.ts`
+- [x] 3. Phase 3 — Functional Core: Donation Router & Tax Valuator
+  - [x] 3.1 Implement `shouldDonate`, `selectNearestFoodBank`, and `buildDonationManifest` in `lib/core/donationRouter.ts`
     - `shouldDonate`: returns `true` if `effectiveDte < 0.5` OR (`sellThroughProbability < 0.05` AND `effectiveDte <= 1.0`)
     - `selectNearestFoodBank`: filter for `isActive = true`, compute Haversine distance for each, return the closest; return `null` if none active. Haversine: `R = 6371`, use `atan2(sqrt(a), sqrt(1−a))` formula from the design
     - `buildDonationManifest`: set `triggerReason = 'effective_dte_below_threshold'` when `effectiveDte < 0.5` (takes precedence); `'sell_through_impossible'` otherwise; set `donatedQuantityUnits = quantityOnHand`; if no active bank exists, return `{ ok: false, error: ... }`
     - Export `DonationResult` discriminated union and `FoodBank` interface
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [~] 3.2 Implement `computeIrsDeduction` in `lib/core/taxValuator.ts`
+  - [x] 3.2 Implement `computeIrsDeduction` in `lib/core/taxValuator.ts`
     - Validate: `donatedQuantityUnits <= 0` → `"donatedQuantityUnits must be a positive integer"`; `fairMarketValuePerUnit <= 0` → `"fairMarketValuePerUnit must be positive"`; `costBasisTotal < 0` → `"costBasisTotal must be non-negative"`
     - Formula: if `totalFairMarketValue <= costBasisTotal` → `irsDeductionAmount = costBasisTotal`; else compute `base = costBasisTotal + 0.5 × (totalFairMarketValue − costBasisTotal)`, cap at `2 × costBasisTotal`
     - Assign `irsFormReference`: `totalFairMarketValue < 500` → `'IRS Form 8283, Section A'`; `>= 500` → `'IRS Form 8283, Section B'`
     - Export `TaxResult` discriminated union
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.6_
 
-  - [ ]* 3.3 Write property test for IRS deduction correctness and bounds (Property 6)
+  - [x] 3.3 Write property test for IRS deduction correctness and bounds (Property 6)
     - **Property 6: IRS deduction correctness and bounds** — for any valid manifest, `irsDeductionAmount` must equal the formula result AND satisfy `costBasisTotal ≤ irsDeductionAmount ≤ 2 × costBasisTotal`
     - Define `arbDonationManifest` in `tests/arbitraries.ts`: `donatedQuantityUnits` integer ≥ 1, `fairMarketValuePerUnit > 0`, `costBasisTotal >= 0`
     - Cover all three formula branches: FMV < cost, base < cap, base ≥ cap
     - Use `{ numRuns: 500 }`
     - **Validates: Requirements 7.1, 7.2, 7.3, 7.5**
 
-  - [ ]* 3.4 Write property test for no premature donation (Property 7)
+  - [x] 3.4 Write property test for no premature donation (Property 7)
     - **Property 7: No premature donation** — for any batch with `effectiveDte >= 0.5` AND `sellThroughProbability >= 0.05`, `shouldDonate()` must return `false` and no manifest may be generated
     - Generate inputs with `dte` in `[0.5, 100]` and `stp` in `[0.05, 1.0]`
     - **Validates: Requirements 6.6**
 
-  - [ ]* 3.5 Write unit tests for `donationRouter` and `taxValuator`
+  - [x] 3.5 Write unit tests for `donationRouter` and `taxValuator`
     - `donationRouter`: no active bank → error; both triggers satisfied → `effective_dte_below_threshold` wins; nearest bank selected correctly by Haversine vs a farther bank; `quantityOnHand = 0` does not trigger
     - `taxValuator`: FMV < cost → `costBasisTotal`; computed base > 2× cap → capped; FMV = 499 → Section A; FMV = 500 → Section B; zero quantity → error
     - Place tests in `tests/core/donationRouter.test.ts` and `tests/core/taxValuator.test.ts`
     - _Requirements: 6.1, 6.2, 6.3, 6.5, 7.3, 7.4, 7.6_
 
-  - [~] 3.6 Phase 3 checkpoint — ensure all tests pass
+  - [x] 3.6 Phase 3 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 3 tests pass with zero failures
 
 ---
