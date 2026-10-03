@@ -13,9 +13,43 @@
 
 import Database from 'better-sqlite3';
 import { randomUUID } from 'crypto';
-import { readFileSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import type { AuditEntry } from '../types';
+
+const DEFAULT_SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS audit_entries (
+  entry_id       TEXT    NOT NULL PRIMARY KEY,
+  entry_type     TEXT    NOT NULL CHECK (entry_type IN (
+                   'PRICING_DECISION',
+                   'DONATION_MANIFEST',
+                   'WEATHER_SYNC',
+                   'PRICE_INVARIANT_VIOLATION'
+                 )),
+  batch_id       TEXT,
+  store_id       TEXT    NOT NULL,
+  occurred_at    TEXT    NOT NULL,
+  payload        TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_batch_id
+  ON audit_entries (batch_id, occurred_at ASC);
+
+CREATE INDEX IF NOT EXISTS idx_audit_store_type
+  ON audit_entries (store_id, entry_type, occurred_at DESC);
+
+CREATE TRIGGER IF NOT EXISTS prevent_update_audit
+  BEFORE UPDATE ON audit_entries
+BEGIN
+  SELECT RAISE(ABORT, 'audit_entries is append-only: UPDATE not permitted');
+END;
+
+CREATE TRIGGER IF NOT EXISTS prevent_delete_audit
+  BEFORE DELETE ON audit_entries
+BEGIN
+  SELECT RAISE(ABORT, 'audit_entries is append-only: DELETE not permitted');
+END;
+`;
 
 export interface AuditLedgerConfig {
   readonly dbPath: string;
@@ -51,8 +85,21 @@ export class AuditLedger {
     this.db = new Database(config.dbPath);
 
     // Execute schema.sql to create tables, indexes, and triggers
-    const schemaPath = join(__dirname, 'schema.sql');
-    const schemaSql = readFileSync(schemaPath, 'utf-8');
+    let schemaSql = DEFAULT_SCHEMA_SQL;
+    try {
+      const candidates = [
+        join(process.cwd(), 'lib', 'db', 'schema.sql'),
+        join(__dirname, 'schema.sql'),
+      ];
+      for (const p of candidates) {
+        if (existsSync(p)) {
+          schemaSql = readFileSync(p, 'utf-8');
+          break;
+        }
+      }
+    } catch {
+      // Fallback to embedded schema
+    }
     this.db.exec(schemaSql);
   }
 
