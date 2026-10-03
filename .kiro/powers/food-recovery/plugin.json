@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "food-recovery",
+  "version": "1.0.0",
+  "description": "Intelligent perishables spoilage prevention, dynamic markdown pricing, and IRS §170(e)(3) donation recovery",
+  "author": {
+    "name": "FreshFlow Team",
+    "url": "https://github.com/berennicem26/FreshFlow"
+  },
+  "keywords": [
+    "food recovery",
+    "spoilage",
+    "markdown pricing",
+    "food donation",
+    "shelf life",
+    "irs 170e3",
+    "tax deduction",
+    "perishables",
+    "thermal decay",
+    "inventory audit"
+  ],
+  "homepage": "https://github.com/berennicem26/FreshFlow",
+  "repository": "https://github.com/berennicem26/FreshFlow",
+  "license": "MIT"
+}
