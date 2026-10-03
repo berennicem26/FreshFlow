@@ -182,15 +182,15 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
 
 ---
 
-- [ ] 5. Phase 5 — Imperative Shell: Weather Sync
-  - [~] 5.1 Implement `WeatherSync` class in `lib/shell/weatherSync.ts`
+- [x] 5. Phase 5 — Imperative Shell: Weather Sync
+  - [x] 5.1 Implement `WeatherSync` class in `lib/shell/weatherSync.ts`
     - Constructor accepts an `AuditLedger` instance
     - Implement coordinate validation: lat outside `[−90, 90]` → emit `'config_error'` event with `field: 'latitude'`; lon outside `[−180, 180]` → emit with `field: 'longitude'`; throw after emitting
     - Implement 60-minute sync interval guard in `fetchAndStore`: if last sync for `storeId` was < 60 min ago, return the cached `WeatherSyncRecord` from the ledger
     - Implement `forceSync` that bypasses the interval guard
     - _Requirements: 10.6, 10.7_
 
-  - [~] 5.2 Implement Open-Meteo MCP call and retry logic in `WeatherSync`
+  - [x] 5.2 Implement Open-Meteo MCP call and retry logic in `WeatherSync`
     - Call `mcpClient.callTool('get_forecast', { latitude, longitude, hourly: ['temperature_2m'], forecast_days: 2, timezone: 'UTC' })`
     - Implement `transformToWeatherSyncRecord`: map `hourly.time[i]` + `hourly.temperature_2m[i]` to `TemperatureReading[]`; set `syncId = randomUUID()`, `fetchedAtIso = new Date().toISOString()`, `forecastHorizonHours = readings.length`
     - On success: insert `WeatherSyncRecord` into `AuditLedger` as `WEATHER_SYNC` entry, return record
@@ -200,7 +200,7 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Export `WeatherSyncError` as a named error class
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5_
 
-  - [ ]* 5.3 Write integration tests for `weatherSync`
+  - [x] 5.3 Write integration tests for `weatherSync`
     - Successful fetch: mock MCP client returns valid Open-Meteo response → `WeatherSyncRecord` is correctly transformed and inserted into ledger
     - Cache fallback: mock MCP to fail all retries; pre-populate ledger with a record < 24 h old → `fetchAndStore` returns cached record
     - Cache expiry: mock MCP to fail; cached record is > 24 h old → `WeatherSyncError` is thrown
@@ -209,7 +209,7 @@ All code is TypeScript targeting ES2022, tested with Vitest (`vitest run`), and 
     - Place tests in `tests/shell/weatherSync.test.ts`
     - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6, 10.7_
 
-  - [~] 5.4 Phase 5 checkpoint — ensure all tests pass
+  - [x] 5.4 Phase 5 checkpoint — ensure all tests pass
     - Run `npm test` and confirm all Phase 5 tests pass with zero failures
 
 ---
