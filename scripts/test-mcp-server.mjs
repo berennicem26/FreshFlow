@@ -104,6 +104,23 @@ async function runTestSuite() {
     assert(invData.totalBatches >= 1, 'Returned dairy batches');
     assert(invData.inventory[0].category === 'Dairy', 'Filtered by Dairy category');
 
+    // Test 3b: fetch_open_meteo_weather (Live Climate Telemetry)
+    console.log('\n[3b] Testing Tool Execution: fetch_open_meteo_weather (Live Climate Telemetry)');
+    const weatherResp = await sendRequest('tools/call', {
+      name: 'fetch_open_meteo_weather',
+      arguments: {
+        latitude: 34.0522,
+        longitude: -118.2437,
+        storeId: 'STORE-LA-101',
+      },
+    });
+    const weatherData = JSON.parse(weatherResp.result.content[0].text);
+    assert(weatherData.ambientTemperatureC !== undefined, 'Ambient temperature returned');
+    assert(typeof weatherData.ambientTemperatureC === 'number', 'Ambient temperature is a number');
+    assert(weatherData.thermalDecayMultipliers !== undefined, 'Thermal decay multipliers computed');
+    assert(weatherData.thermalDecayMultipliers.Dairy > 0, 'Dairy decay multiplier computed');
+    assert(weatherData.coordinates.latitude === 34.0522, 'Store latitude verified');
+
     // Test 4: calculate_arrhenius_decay
     console.log('\n[4] Testing Tool Execution: calculate_arrhenius_decay');
     const decayResp = await sendRequest('tools/call', {

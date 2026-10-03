@@ -1,12 +1,28 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
+    "sqlite": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["scripts/mcp-inventory-server.mjs"],
+      "env": {
+        "AUDIT_DB_PATH": "data/freshflow.db"
+      }
+    },
     "freshflow-inventory": {
       "type": "stdio",
       "command": "node",
       "args": ["scripts/mcp-inventory-server.mjs"],
       "env": {
         "AUDIT_DB_PATH": "data/freshflow.db"
+      }
+    },
+    "fetch": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
       }
     }
   }
