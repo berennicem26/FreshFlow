@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   Thermometer,
@@ -91,9 +91,16 @@ export default function FreshFlowDashboard() {
     showToast(`All batches re-evaluated at ${temp}°C ambient temperature.`);
   };
 
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleSliderChange = (newTemp: number) => {
     setAmbientTemp(newTemp);
-    evaluateAll(batches, newTemp);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      evaluateAll(batches, newTemp);
+    }, 250);
   };
 
   const dispatchDonation = async (manifestId: string, productName: string) => {

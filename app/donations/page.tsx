@@ -141,7 +141,7 @@ export default function DonationsPage() {
               <thead className="bg-neutral-950/60 text-neutral-400 uppercase text-[10px] tracking-wider border-b border-neutral-800">
                 <tr>
                   <th className="py-3.5 px-6">Manifest ID / Date</th>
-                  <th className="py-3.5 px-4">Recipient Food Bank</th>
+                  <th className="py-3.5 px-4">Product & Recipient Food Bank</th>
                   <th className="py-3.5 px-4">Units Donated</th>
                   <th className="py-3.5 px-4">Fair Market Value</th>
                   <th className="py-3.5 px-4">Cost Basis</th>
@@ -168,8 +168,13 @@ export default function DonationsPage() {
                         </div>
                       </td>
 
-                      <td className="py-4 px-4 font-sans font-medium text-white">
-                        {d.recipientFoodBankName}
+                      <td className="py-4 px-4 font-sans">
+                        <div className="text-white font-semibold text-xs">
+                          {(d as any).productName ?? 'Perishable Lot'}
+                        </div>
+                        <div className="text-[11px] text-neutral-400 mt-0.5">
+                          {d.recipientFoodBankName}
+                        </div>
                       </td>
 
                       <td className="py-4 px-4">

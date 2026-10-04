@@ -7,12 +7,13 @@
 
 import { NextResponse } from 'next/server';
 import { DonationDispatchSchema } from '@/lib/schemas';
-import { getAuditLedger } from '@/lib/services';
+import { getAuditLedger, getBatchStore } from '@/lib/services';
 import type { DonationManifest } from '@/lib/types';
 
 export async function GET() {
   try {
     const ledger = getAuditLedger();
+    const store = getBatchStore();
     // Query all DONATION_MANIFEST entries from the database
     const db = (ledger as any).db;
     const stmt = db.prepare(`
@@ -28,7 +29,19 @@ export async function GET() {
       payload: string;
     }>;
 
-    const donations = rows.map((r) => JSON.parse(r.payload) as DonationManifest);
+    const rawDonations = rows.map((r) => JSON.parse(r.payload) as DonationManifest);
+
+    // Group by batchId to show the latest manifest per active perishable lot
+    const latestByBatch = new Map<string, DonationManifest>();
+    for (const d of rawDonations) {
+      if (d.batchId && !latestByBatch.has(d.batchId)) {
+        latestByBatch.set(d.batchId, d);
+      }
+    }
+    const donations = Array.from(latestByBatch.values()).map((d) => ({
+      ...d,
+      productName: (d as any).productName ?? store.get(d.batchId)?.productName ?? 'Perishable Inventory Lot',
+    }));
     const totalDeductions = donations.reduce(
       (sum, d) => sum + (d.irsDeductionAmount || 0),
       0
@@ -40,6 +53,7 @@ export async function GET() {
       summary: {
         totalManifests: donations.length,
         totalDeductionsUsd: Math.round(totalDeductions * 100) / 100,
+        totalAuditEvents: rawDonations.length,
       },
     });
   } catch (error: any) {
