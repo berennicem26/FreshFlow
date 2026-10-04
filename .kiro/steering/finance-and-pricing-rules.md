@@ -47,33 +47,40 @@ function computeDiscountedPrice(
 
 As effective days-to-expiry (DTE) decreases, discount rates **MUST** be monotonically non-decreasing across tiers:
 
-| Tier       | DTE Threshold          | Discount Rate |
-|------------|------------------------|---------------|
-| `NONE`     | DTE > 3.0              | 0%            |
-| `TIER_1`   | DTE ≤ 3.0 + STP < 0.8 | 15%           |
-| `TIER_2`   | DTE ≤ 2.0              | 35%           |
-| `TIER_3`   | DTE ≤ 1.0              | 50%           |
-| `DONATION` | DTE ≤ 1.0 + STP < 0.1 | N/A           |
+| Tier       | DTE Threshold (effective days left) | Discount Rate |
+|------------|-------------------------------------|---------------|
+| `NONE`     | DTE > 5.0, or DTE ≤ 5.0 with STP ≥ 0.9 | 0%         |
+| `TIER_1`   | DTE ≤ 5.0 + STP < 0.9               | 15%           |
+| `TIER_2`   | DTE ≤ 4.0                           | 35%           |
+| `TIER_3`   | DTE ≤ 3.0                           | 50%           |
+| `DONATION` | 1.0 ≤ DTE ≤ 2.0, or DTE ≤ 3.0 + STP < 0.5 | N/A     |
+| `PULL`     | DTE < 1.0                           | N/A (removed from sale) |
 
-**Tier precedence** (descending urgency): `DONATION > TIER_3 > TIER_2 > TIER_1 > NONE`
+All thresholds live in `lib/core/retailPolicy.ts` — never hard-code them elsewhere.
+
+**Why these numbers (real-world grounding):** supermarkets mark down 1–5 days before the date; food banks need usable shelf-life on arrival (produce ≥ 5 days, cut produce ≥ 3 days), so donation must happen while ≥ 1 day remains for pickup and distribution; shoppers need ≥ 2 days to use discounted stock at home.
+
+**Tier precedence** (descending urgency): `PULL > DONATION > TIER_3 > TIER_2 > TIER_1 > NONE`
 
 A higher-urgency tier always supersedes a lower-urgency tier. Evaluate conditions from highest to lowest urgency and return on the first match — exactly one tier per `PricingDecision`.
 
 ```typescript
 // ❌ Non-Compliant — tiers evaluated bottom-up, lower tier can override higher
 function evaluateTierBad(dte: number, stp: number): MarkdownTier {
-  if (dte <= 3.0 && stp < 0.8) return 'TIER_1';
-  if (dte <= 2.0) return 'TIER_2'; // Never reached when dte <= 3.0 already matched
-  if (dte <= 1.0) return 'TIER_3';
+  if (dte <= 5.0 && stp < 0.9) return 'TIER_1';
+  if (dte <= 4.0) return 'TIER_2'; // Never reached when dte <= 5.0 already matched
+  if (dte <= 3.0) return 'TIER_3';
   return 'NONE';
 }
 
 // ✅ Compliant — highest urgency evaluated first, first match wins
 function evaluatePricingTier(dte: number, stp: number): MarkdownTier {
-  if (dte <= 1.0 && stp < 0.1) return 'DONATION';
-  if (dte <= 1.0)               return 'TIER_3';
-  if (dte <= 2.0)               return 'TIER_2';
-  if (dte <= 3.0 && stp < 0.8) return 'TIER_1';
+  if (dte < 1.0)                return 'PULL';
+  if (dte <= 2.0)               return 'DONATION';
+  if (dte <= 3.0 && stp < 0.5)  return 'DONATION';
+  if (dte <= 3.0)               return 'TIER_3';
+  if (dte <= 4.0)               return 'TIER_2';
+  if (dte <= 5.0 && stp < 0.9)  return 'TIER_1';
   return 'NONE';
 }
 ```

@@ -10,6 +10,12 @@
 
 import type { DonationManifest, PerishableBatch } from '../types';
 import { computeIrsDeduction } from './taxValuator';
+import {
+  PULL_BELOW_DTE,
+  DONATION_DTE,
+  EARLY_DONATION_DTE,
+  EARLY_DONATION_STP,
+} from './retailPolicy';
 
 // ---------------------------------------------------------------------------
 // Types & Interfaces
@@ -61,21 +67,25 @@ export function calculateHaversineDistanceKm(
 // ---------------------------------------------------------------------------
 
 /**
- * Determines whether a batch is eligible for emergency donation routing.
+ * Determines whether a batch is eligible for food bank donation.
  *
- * Rules (Requirements 6.1, 6.2, 6.6):
- * - Effective DTE < 0.5 days: ALWAYS donate immediately (spoilage threshold).
- * - Effective DTE <= 1.0 day AND sellThroughProbability < 0.05: donate (sell-through impossible).
- * - Otherwise: DO NOT donate (prevent premature donation).
+ * Policy (see ./retailPolicy.ts):
+ * - effectiveDte < 1.0: NOT eligible — too little time for pickup & distribution (pull from sale).
+ * - 1.0 <= effectiveDte <= 2.0: donate (final window that still leaves the food bank usable time).
+ * - effectiveDte <= 3.0 AND sellThroughProbability < 0.5: donate early (won't sell in time).
+ * - Otherwise: DO NOT donate (keep selling — prevent premature donation).
  */
 export function shouldDonate(
   effectiveDte: number,
   sellThroughProbability: number
 ): boolean {
-  if (effectiveDte < 0.5) {
+  if (effectiveDte < PULL_BELOW_DTE) {
+    return false;
+  }
+  if (effectiveDte <= DONATION_DTE) {
     return true;
   }
-  if (effectiveDte <= 1.0 && sellThroughProbability < 0.05) {
+  if (effectiveDte <= EARLY_DONATION_DTE && sellThroughProbability < EARLY_DONATION_STP) {
     return true;
   }
   return false;
@@ -164,9 +174,10 @@ export function buildDonationManifest(
   }
 
   // Precedence rule (Requirement 6.3):
-  // When effectiveDte < 0.5, effective_dte_below_threshold takes precedence
+  // Inside the final donation window (<= 2.0 days), effective_dte_below_threshold takes precedence;
+  // earlier donations (2.0–3.0 days) are driven by low sell-through.
   const triggerReason =
-    effectiveDte < 0.5
+    effectiveDte <= DONATION_DTE
       ? 'effective_dte_below_threshold'
       : 'sell_through_impossible';
 

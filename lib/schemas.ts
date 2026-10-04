@@ -25,6 +25,7 @@ export const PerishableBatchSchema = z
     sku: z.string().min(1),
     productName: z.string().min(1),
     category: ProductCategorySchema,
+    storageZone: z.enum(['refrigerated', 'ambient']).optional(),
     storeId: z.string().min(1),
     nominalShelfLifeDays: z.number().int().positive(),
     expiryDateIso: z.string().datetime(),

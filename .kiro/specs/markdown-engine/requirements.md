@@ -227,58 +227,75 @@ interface AuditEntry {
 
 ### Requirement 3: Tier 1 Moderate Markdown
 
-**User Story:** As a store pricing manager, I want the system to apply a 15% discount to batches with 3 or fewer effective days remaining and low sell-through probability, so that moderately time-pressured stock moves before the aggressive markdown window opens.
+**User Story:** As a store pricing manager, I want the system to apply a 15% discount to slow-selling batches with 5 or fewer effective days remaining, so that stock starts moving early while fast sellers keep full margin.
+
+> **Calibration note (Rev. 2):** Thresholds were recalibrated to real-world practice — supermarkets mark down 1–5 days before the date, food banks require usable shelf-life on arrival, and shoppers need time to use discounted stock at home. All values live in `lib/core/retailPolicy.ts`.
 
 #### Acceptance Criteria
 
-1. WHEN the Pricing_Engine evaluates a `PerishableBatch` with `effectiveDte` less than or equal to 3.0 days AND `sellThroughProbability` less than 0.8, THE Pricing_Engine SHALL assign `tier = 'TIER_1'` with `discountRate = 0.15`.
+1. WHEN the Pricing_Engine evaluates a `PerishableBatch` with `effectiveDte` less than or equal to 5.0 days AND `sellThroughProbability` less than 0.9, THE Pricing_Engine SHALL assign `tier = 'TIER_1'` with `discountRate = 0.15`.
 2. WHEN `tier` is `TIER_1`, THE Pricing_Engine SHALL compute `computedPricePerUnit = msrpPerUnit × (1 − 0.15)` before applying salvage floor enforcement.
-3. WHEN `effectiveDte` is greater than 3.0 days, THE Pricing_Engine SHALL NOT assign `tier = 'TIER_1'` regardless of `sellThroughProbability`.
-4. WHEN `sellThroughProbability` is 0.8 or greater and `effectiveDte` is less than or equal to 3.0 days, THE Pricing_Engine SHALL NOT assign `tier = 'TIER_1'`.
+3. WHEN `effectiveDte` is greater than 5.0 days, THE Pricing_Engine SHALL NOT assign `tier = 'TIER_1'` regardless of `sellThroughProbability`.
+4. WHEN `sellThroughProbability` is 0.9 or greater and `effectiveDte` is greater than 4.0 days, THE Pricing_Engine SHALL assign `tier = 'NONE'` (fast sellers keep full price).
 5. IF the `computedPricePerUnit` after the 15% discount falls below `costBasisPerUnit`, THEN THE Pricing_Engine SHALL set `computedPricePerUnit` to `costBasisPerUnit` and set `rationale` to a string that identifies the salvage floor as the constraining factor and includes the pre-floor computed value.
 
 ---
 
 ### Requirement 4: Tier 2 Aggressive Markdown
 
-**User Story:** As a store pricing manager, I want the system to apply a 35% discount to batches with 2 or fewer effective days remaining, so that stock at high spoilage risk sells through quickly regardless of historical velocity.
+**User Story:** As a store pricing manager, I want the system to apply a 35% discount to batches with 4 or fewer effective days remaining, so that stock at rising spoilage risk sells through while shoppers still have several days to use it.
 
 #### Acceptance Criteria
 
-1. WHEN the Pricing_Engine evaluates a `PerishableBatch` with `effectiveDte` less than or equal to 2.0 days, THE Pricing_Engine SHALL assign `tier = 'TIER_2'` with `discountRate = 0.35`, superseding any prior tier assignment.
+1. WHEN the Pricing_Engine evaluates a `PerishableBatch` with `effectiveDte` less than or equal to 4.0 days and greater than 3.0 days, THE Pricing_Engine SHALL assign `tier = 'TIER_2'` with `discountRate = 0.35`, superseding any lower-urgency tier.
 2. WHEN `tier` is `TIER_2`, THE Pricing_Engine SHALL compute `computedPricePerUnit = msrpPerUnit × (1 − 0.35)` before applying salvage floor enforcement.
-3. WHEN `effectiveDte` is greater than 2.0 days, THE Pricing_Engine SHALL NOT assign `tier = 'TIER_2'`.
+3. WHEN `effectiveDte` is greater than 4.0 days, THE Pricing_Engine SHALL NOT assign `tier = 'TIER_2'`.
 4. IF the `computedPricePerUnit` after the 35% discount falls below `costBasisPerUnit` and `costBasisPerUnit` is greater than 0.0, THEN THE Pricing_Engine SHALL set `computedPricePerUnit` to `costBasisPerUnit` and set `rationale` to a string that identifies the salvage floor as the constraining factor and includes the pre-floor computed value.
-5. WHEN a `PerishableBatch` with a recorded `PricingDecision` having `effectiveDte` greater than 2.0 is re-evaluated and its new `effectiveDte` is less than or equal to 2.0, THE Pricing_Engine SHALL produce a new `PricingDecision` with `tier = 'TIER_2'` (tier escalation invariant).
+5. WHEN a `PerishableBatch` with a recorded `PricingDecision` having `effectiveDte` greater than 4.0 is re-evaluated and its new `effectiveDte` is less than or equal to 4.0, THE Pricing_Engine SHALL produce a new `PricingDecision` with a tier of equal or higher urgency than `TIER_2` (tier escalation invariant).
 
 ---
 
-### Requirement 5: Tier 3 Clearance Floor
+### Requirement 5: Tier 3 Final Markdown, Donation Handoff and Pull
 
-**User Story:** As a store pricing manager, I want the system to apply a 50% discount to batches with 1 or fewer effective days remaining, so that near-expiry stock clears at maximum velocity while remaining profitable above cost.
+**User Story:** As a store pricing manager, I want a 50% final markdown with 3 or fewer days left, and a hand-off to donation while a food bank can still use the product, so that nothing is sold too close to its date and nothing is donated too late.
 
 #### Acceptance Criteria
 
-1. WHEN the Pricing_Engine evaluates a `PerishableBatch` with `effectiveDte` less than or equal to 1.0 day, THE Pricing_Engine SHALL assign `tier = 'TIER_3'` with `discountRate = 0.50` and record in `rationale` that the clearance tier was assigned, superseded by DONATION only per criterion 4.
+1. WHEN the Pricing_Engine evaluates a `PerishableBatch` with `effectiveDte` less than or equal to 3.0 days and greater than 2.0 days AND `sellThroughProbability` of 0.5 or greater, THE Pricing_Engine SHALL assign `tier = 'TIER_3'` with `discountRate = 0.50`.
 2. WHEN `tier` is `TIER_3`, THE Pricing_Engine SHALL compute `computedPricePerUnit = msrpPerUnit × (1 − 0.50)` before applying salvage floor enforcement.
-3. IF the `computedPricePerUnit` after the 50% discount falls below `costBasisPerUnit`, THEN THE Pricing_Engine SHALL set `computedPricePerUnit` to `costBasisPerUnit` and record in `rationale` that the clearance price was clamped to the salvage floor.
-4. WHEN `effectiveDte` is less than or equal to 1.0 day and `sellThroughProbability` is less than 0.1, THE Pricing_Engine SHALL set `tier = 'DONATION'` and set `computedPricePerUnit` to `null`, delegating to the Donation_Router for routing rather than issuing a retail price.
-5. THE Pricing_Engine SHALL resolve any batch evaluation by selecting the single highest-urgency tier from {DONATION, TIER_3, TIER_2, TIER_1, NONE} in descending urgency order and discarding all lower-urgency tier assignments, so that exactly one tier is present in each `PricingDecision`.
+3. IF the `computedPricePerUnit` after the 50% discount falls below `costBasisPerUnit`, THEN THE Pricing_Engine SHALL set `computedPricePerUnit` to `costBasisPerUnit` and record in `rationale` that the price was clamped to the salvage floor.
+4. WHEN `effectiveDte` is between 1.0 and 2.0 days inclusive, OR `effectiveDte` is less than or equal to 3.0 days and `sellThroughProbability` is less than 0.5, THE Pricing_Engine SHALL set `tier = 'DONATION'` and set `computedPricePerUnit` to `null`, delegating to the Donation_Router.
+5. WHEN `effectiveDte` is less than 1.0 day, THE Pricing_Engine SHALL set `tier = 'PULL'` and `computedPricePerUnit` to `null` (too late for shoppers or food banks; removed from sale).
+6. THE Pricing_Engine SHALL resolve any batch evaluation by selecting the single highest-urgency tier from {PULL, DONATION, TIER_3, TIER_2, TIER_1, NONE} in descending urgency order, so that exactly one tier is present in each `PricingDecision`.
 
 ---
 
 ### Requirement 6: Food Bank Donation Routing
 
-**User Story:** As a sustainability director, I want the system to automatically route batches that cannot sell before expiry to registered food bank partners, so that edible food is diverted from waste streams and the retailer captures a charitable deduction.
+**User Story:** As a sustainability director, I want the system to automatically route batches that cannot sell in time to registered food bank partners while there is still enough shelf-life for pickup and distribution, so that edible food is diverted from waste streams and the retailer captures a charitable deduction.
 
 #### Acceptance Criteria
 
-1. WHEN the Donation_Router receives a `PerishableBatch` with `effectiveDte` less than 0.5 days and `quantityOnHand` greater than 0, THE Donation_Router SHALL generate a `DonationManifest` for the full `quantityOnHand`, assign `triggerReason = 'effective_dte_below_threshold'`, and set `donatedQuantityUnits` equal to `quantityOnHand` at evaluation time.
-2. WHEN the Donation_Router receives a `PerishableBatch` where `sellThroughProbability` is less than 0.05 and `effectiveDte` is less than or equal to 1.0 day and `quantityOnHand` is greater than 0, THE Donation_Router SHALL generate a `DonationManifest`, assign `triggerReason = 'sell_through_impossible'`, and set `donatedQuantityUnits` equal to `quantityOnHand`.
-3. IF both the `effective_dte_below_threshold` and `sell_through_impossible` trigger conditions are simultaneously satisfied, THEN THE Donation_Router SHALL assign `triggerReason = 'effective_dte_below_threshold'`.
+1. WHEN the Donation_Router receives a `PerishableBatch` with `effectiveDte` between 1.0 and 2.0 days inclusive and `quantityOnHand` greater than 0, THE Donation_Router SHALL generate a `DonationManifest` for the full `quantityOnHand`, assign `triggerReason = 'effective_dte_below_threshold'`, and set `donatedQuantityUnits` equal to `quantityOnHand` at evaluation time.
+2. WHEN the Donation_Router receives a `PerishableBatch` where `effectiveDte` is greater than 2.0 and less than or equal to 3.0 days and `sellThroughProbability` is less than 0.5 and `quantityOnHand` is greater than 0, THE Donation_Router SHALL generate a `DonationManifest`, assign `triggerReason = 'sell_through_impossible'`, and set `donatedQuantityUnits` equal to `quantityOnHand`.
+3. IF `effectiveDte` is less than or equal to 2.0 days, THEN THE Donation_Router SHALL assign `triggerReason = 'effective_dte_below_threshold'` regardless of `sellThroughProbability`.
 4. WHEN the Donation_Router generates a `DonationManifest`, THE Donation_Router SHALL select the `recipientFoodBankId` from the configured list of registered food bank partners by choosing the partner with the lowest pre-configured transport distance value from the batch's store location.
 5. IF no food bank partner with `isActive = true` exists in the configured list, THEN THE Donation_Router SHALL return an error indicating no active recipient is configured and SHALL NOT generate a `DonationManifest`.
-6. THE Donation_Router SHALL NOT generate a `DonationManifest` for a batch with `effectiveDte` greater than or equal to 0.5 days AND `sellThroughProbability` greater than or equal to 0.05 (no premature donation invariant).
+6. THE Donation_Router SHALL NOT generate a `DonationManifest` for a batch with `effectiveDte` greater than 3.0 days, or greater than 2.0 days with `sellThroughProbability` of 0.5 or greater (no premature donation invariant).
+7. THE Donation_Router SHALL NOT generate a `DonationManifest` for a batch with `effectiveDte` less than 1.0 day (too-late invariant — the food bank cannot distribute it in time).
+
+---
+
+### Requirement 6A: Product Temperature by Display Zone
+
+**User Story:** As a store operations manager, I want outdoor weather translated into the temperature each product actually experiences, so that a hot day does not wrongly treat milk in a cooler as if it were sitting on a counter.
+
+#### Acceptance Criteria
+
+1. THE System SHALL assign every batch a display zone (`refrigerated` or `ambient`), using an explicit `storageZone` when provided and a category default otherwise (dairy, meat, prepared → refrigerated; produce, bakery → ambient).
+2. WHEN outdoor temperature is supplied (Open-Meteo or simulation), THE System SHALL estimate refrigerated product temperature as `4 + 0.15 × max(0, outdoor − 20)` °C and ambient product temperature as `clamp(20 + 0.4 × (outdoor − 20), 16, 30)` °C.
+3. THE Thermal_Calculator SHALL use the zone's normal temperature as `referenceTemperatureCelsius` (4 °C refrigerated, 20 °C ambient), so that a normal 20 °C day yields a decay factor of 1.0.
+4. THE System SHALL NEVER use raw outdoor temperature directly as product temperature.
 
 ---
 

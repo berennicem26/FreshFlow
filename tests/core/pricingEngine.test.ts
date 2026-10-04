@@ -21,11 +21,11 @@ describe('pricingEngine unit tests', () => {
 
   const nowIso = '2026-10-03T12:00:00Z';
 
-  it('assigns TIER_1 (15%) when DTE <= 3.0 and STP < 0.8', () => {
-    const tier = evaluatePricingTier(2.5, 0.7);
+  it('assigns TIER_1 (15%) when DTE <= 5.0 and STP < 0.9 (slow seller)', () => {
+    const tier = evaluatePricingTier(4.5, 0.7);
     expect(tier).toBe('TIER_1');
 
-    const res = buildPricingDecision(baseBatch, 2.5, 0.7, nowIso);
+    const res = buildPricingDecision(baseBatch, 4.5, 0.7, nowIso);
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.value.tier).toBe('TIER_1');
@@ -35,16 +35,20 @@ describe('pricingEngine unit tests', () => {
     }
   });
 
-  it('assigns NONE when DTE <= 3.0 but STP >= 0.8 (stock selling fine)', () => {
-    const tier = evaluatePricingTier(2.5, 0.85);
+  it('assigns NONE when DTE <= 5.0 but STP >= 0.9 (stock selling fast)', () => {
+    const tier = evaluatePricingTier(4.5, 0.95);
     expect(tier).toBe('NONE');
   });
 
-  it('assigns TIER_2 (35%) when DTE <= 2.0 regardless of STP', () => {
-    const tier = evaluatePricingTier(1.8, 0.95);
+  it('assigns NONE when more than 5 days remain', () => {
+    expect(evaluatePricingTier(6.0, 0.1)).toBe('NONE');
+  });
+
+  it('assigns TIER_2 (35%) when DTE <= 4.0 regardless of STP', () => {
+    const tier = evaluatePricingTier(3.8, 0.95);
     expect(tier).toBe('TIER_2');
 
-    const res = buildPricingDecision(baseBatch, 1.8, 0.95, nowIso);
+    const res = buildPricingDecision(baseBatch, 3.8, 0.95, nowIso);
     expect(res.ok).toBe(true);
     if (res.ok) {
       // 6.00 * 0.65 = 3.90
@@ -52,11 +56,11 @@ describe('pricingEngine unit tests', () => {
     }
   });
 
-  it('assigns TIER_3 (50%) when DTE <= 1.0 and STP >= 0.1', () => {
-    const tier = evaluatePricingTier(0.8, 0.2);
+  it('assigns TIER_3 (50%) when DTE <= 3.0 and STP >= 0.5', () => {
+    const tier = evaluatePricingTier(2.8, 0.6);
     expect(tier).toBe('TIER_3');
 
-    const res = buildPricingDecision(baseBatch, 0.8, 0.2, nowIso);
+    const res = buildPricingDecision(baseBatch, 2.8, 0.6, nowIso);
     expect(res.ok).toBe(true);
     if (res.ok) {
       // 6.00 * 0.50 = 3.00 (equals costBasis)
@@ -64,17 +68,34 @@ describe('pricingEngine unit tests', () => {
     }
   });
 
-  it('assigns DONATION when DTE <= 1.0 and STP < 0.1', () => {
-    const tier = evaluatePricingTier(0.8, 0.05);
+  it('assigns DONATION early when DTE <= 3.0 and STP < 0.5 (will not sell in time)', () => {
+    expect(evaluatePricingTier(2.8, 0.3)).toBe('DONATION');
+  });
+
+  it('assigns DONATION when 1.0 <= DTE <= 2.0 regardless of STP (food bank buffer)', () => {
+    const tier = evaluatePricingTier(1.5, 0.95);
     expect(tier).toBe('DONATION');
 
-    const res = buildPricingDecision(baseBatch, 0.8, 0.05, nowIso);
+    const res = buildPricingDecision(baseBatch, 1.5, 0.95, nowIso);
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.value.tier).toBe('DONATION');
       expect(res.value.computedPricePerUnit).toBeNull();
       expect(res.value.boundednessVerified).toBe(false);
       expect(res.value.rationale).toContain('Batch routed to food bank donation');
+    }
+  });
+
+  it('assigns PULL when DTE < 1.0 (too late for shoppers or food banks)', () => {
+    const tier = evaluatePricingTier(0.6, 0.05);
+    expect(tier).toBe('PULL');
+
+    const res = buildPricingDecision(baseBatch, 0.6, 0.05, nowIso);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.tier).toBe('PULL');
+      expect(res.value.computedPricePerUnit).toBeNull();
+      expect(res.value.rationale).toContain('pulled from sale');
     }
   });
 
@@ -86,7 +107,7 @@ describe('pricingEngine unit tests', () => {
     };
 
     // 50% discount on $6.00 would be $3.00, below cost $4.50
-    const res = buildPricingDecision(thinMarginBatch, 0.9, 0.5, nowIso);
+    const res = buildPricingDecision(thinMarginBatch, 2.9, 0.6, nowIso);
     expect(res.ok).toBe(true);
     if (res.ok) {
       expect(res.value.computedPricePerUnit).toBe(4.5);

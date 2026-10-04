@@ -359,10 +359,10 @@ export function buildDonationManifest(
 
 | Condition | `triggerReason` |
 |---|---|
-| `effectiveDte < 0.5` AND `quantityOnHand > 0` | `'effective_dte_below_threshold'` (takes precedence) |
-| `sellThroughProbability < 0.05` AND `effectiveDte <= 1.0` AND `quantityOnHand > 0` | `'sell_through_impossible'` |
+| `1.0 <= effectiveDte <= 2.0` AND `quantityOnHand > 0` | `'effective_dte_below_threshold'` (takes precedence) |
+| `2.0 < effectiveDte <= 3.0` AND `sellThroughProbability < 0.5` AND `quantityOnHand > 0` | `'sell_through_impossible'` |
 
-When both conditions are simultaneously satisfied, `triggerReason = 'effective_dte_below_threshold'`.
+Inside the final window (`effectiveDte <= 2.0`), `triggerReason = 'effective_dte_below_threshold'`.
 
 #### Food Bank Selection — Haversine Distance
 
@@ -381,7 +381,8 @@ function haversineKm(lat1, lon1, lat2, lon2): number {
 
 #### Key Invariants
 
-- **No premature donation:** A batch with `effectiveDte >= 0.5` AND `sellThroughProbability >= 0.05` MUST NOT produce a manifest.
+- **No premature donation:** A batch with `effectiveDte > 3.0`, or `effectiveDte > 2.0` AND `sellThroughProbability >= 0.5`, MUST NOT produce a manifest.
+- **Too-late invariant:** A batch with `effectiveDte < 1.0` MUST NOT produce a donation manifest (assigned `tier = 'PULL'`).
 - **Full quantity donated:** `donatedQuantityUnits = quantityOnHand` at evaluation time.
 
 ---
@@ -834,11 +835,11 @@ This single property covers both formula correctness and the IRS deduction bound
 
 ---
 
-### Property 7: No premature donation
+### Property 7: No premature or too-late donation
 
-*For any* `PerishableBatch` with `effectiveDte ≥ 0.5` AND `sellThroughProbability ≥ 0.05`, `shouldDonate()` must return `false` and no `DonationManifest` may be generated.
+*For any* `PerishableBatch` with `effectiveDte > 3.0`, or `effectiveDte > 2.0` AND `sellThroughProbability >= 0.5`, or `effectiveDte < 1.0`, `shouldDonate()` must return `false` and no `DonationManifest` may be generated.
 
-**Validates: Requirements 6.6**
+**Validates: Requirements 6.6, 6.7**
 
 ---
 

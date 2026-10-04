@@ -201,18 +201,22 @@ The Arrhenius equation is the primary computation path. The Q10 simplified path 
 
 ### 2.3 Donation Routing Precedence
 
-Routing to a food bank is a **food safety action**, not merely an inventory action. The following conditions trigger mandatory donation routing:
+Routing to a food bank is a **food safety action**, not merely an inventory action. A donation is only useful if the food bank still has time to pick it up and distribute it. The following conditions trigger mandatory donation routing (thresholds in `lib/core/retailPolicy.ts`):
 
 | Condition                                                          | Trigger reason                    |
 |--------------------------------------------------------------------|-----------------------------------|
-| `effectiveDte < 0.5` AND `quantityOnHand > 0`                     | `effective_dte_below_threshold`   |
-| `sellThroughProbability < 0.05` AND `effectiveDte <= 1.0` AND `quantityOnHand > 0` | `sell_through_impossible` |
+| `1.0 <= effectiveDte <= 2.0` AND `quantityOnHand > 0`              | `effective_dte_below_threshold`   |
+| `2.0 < effectiveDte <= 3.0` AND `sellThroughProbability < 0.5` AND `quantityOnHand > 0` | `sell_through_impossible` |
 
-**Precedence rule:** When both conditions are satisfied simultaneously, assign `triggerReason = 'effective_dte_below_threshold'`.
+**Precedence rule:** Inside the final window (`effectiveDte <= 2.0`), assign `triggerReason = 'effective_dte_below_threshold'`.
 
-A batch that meets either condition **must not** receive a retail price — it must receive `tier = 'DONATION'` and `computedPricePerUnit = null`. Selling a batch that cannot clear before biological expiry is a food safety violation.
+A batch that meets either condition **must not** receive a retail price — it must receive `tier = 'DONATION'` and `computedPricePerUnit = null`.
 
-**No premature donation invariant:** A batch with `effectiveDte >= 0.5` AND `sellThroughProbability >= 0.05` must **never** produce a `DonationManifest`.
+**Too-late invariant:** A batch with `effectiveDte < 1.0` must **never** produce a `DonationManifest` — it receives `tier = 'PULL'` (removed from sale).
+
+**No premature donation invariant:** A batch with `effectiveDte > 3.0`, or `effectiveDte > 2.0` AND `sellThroughProbability >= 0.5`, must **never** produce a `DonationManifest`.
+
+**Product temperature rule:** Outdoor weather (Open-Meteo or the heatwave slider) is **never** used directly as product temperature. It must first be translated per display zone via `lib/core/storageProfile.ts` (coolers ≈ 4°C with mild heat drift; shelves follow HVAC-dampened indoor temperature), and the decay reference temperature must match the zone.
 
 ---
 

@@ -8,6 +8,16 @@
  */
 
 import type { MarkdownTier, PerishableBatch, PricingDecision } from '../types';
+import {
+  PULL_BELOW_DTE,
+  DONATION_DTE,
+  EARLY_DONATION_DTE,
+  EARLY_DONATION_STP,
+  TIER_3_DTE,
+  TIER_2_DTE,
+  TIER_1_DTE,
+  TIER_1_STP,
+} from './retailPolicy';
 
 // ---------------------------------------------------------------------------
 // Result type for pricing module
@@ -27,6 +37,7 @@ export const DISCOUNT_RATES: Record<MarkdownTier, number> = {
   TIER_2: 0.35,
   TIER_3: 0.50,
   DONATION: 0.0,
+  PULL: 0.0,
 };
 
 // ---------------------------------------------------------------------------
@@ -43,29 +54,37 @@ export function roundCurrency(amount: number): number {
 
 /**
  * Evaluates the appropriate markdown tier in descending urgency order:
- * DONATION > TIER_3 > TIER_2 > TIER_1 > NONE.
+ * PULL > DONATION > TIER_3 > TIER_2 > TIER_1 > NONE.
  *
- * Precedence rules (Requirements 3.1, 4.1, 5.1, 5.4, 5.5):
- * 1. DONATION: effectiveDte <= 1.0 AND sellThroughProbability < 0.1
- * 2. TIER_3:   effectiveDte <= 1.0
- * 3. TIER_2:   effectiveDte <= 2.0
- * 4. TIER_1:   effectiveDte <= 3.0 AND sellThroughProbability < 0.8
- * 5. NONE:     otherwise
+ * Thresholds live in ./retailPolicy.ts (grounded in retail & food-bank practice):
+ * 1. PULL:     effectiveDte < 1.0  (too late for shoppers or food banks)
+ * 2. DONATION: effectiveDte <= 2.0 (keep >= 1 day buffer for food bank pickup)
+ * 3. DONATION: effectiveDte <= 3.0 AND sellThroughProbability < 0.5 (won't sell in time)
+ * 4. TIER_3:   effectiveDte <= 3.0
+ * 5. TIER_2:   effectiveDte <= 4.0
+ * 6. TIER_1:   effectiveDte <= 5.0 AND sellThroughProbability < 0.9
+ * 7. NONE:     otherwise
  */
 export function evaluatePricingTier(
   effectiveDte: number,
   sellThroughProbability: number
 ): MarkdownTier {
-  if (effectiveDte <= 1.0 && sellThroughProbability < 0.1) {
+  if (effectiveDte < PULL_BELOW_DTE) {
+    return 'PULL';
+  }
+  if (effectiveDte <= DONATION_DTE) {
     return 'DONATION';
   }
-  if (effectiveDte <= 1.0) {
+  if (effectiveDte <= EARLY_DONATION_DTE && sellThroughProbability < EARLY_DONATION_STP) {
+    return 'DONATION';
+  }
+  if (effectiveDte <= TIER_3_DTE) {
     return 'TIER_3';
   }
-  if (effectiveDte <= 2.0) {
+  if (effectiveDte <= TIER_2_DTE) {
     return 'TIER_2';
   }
-  if (effectiveDte <= 3.0 && sellThroughProbability < 0.8) {
+  if (effectiveDte <= TIER_1_DTE && sellThroughProbability < TIER_1_STP) {
     return 'TIER_1';
   }
   return 'NONE';
@@ -123,8 +142,8 @@ export function buildPricingDecision(
   const tier = evaluatePricingTier(effectiveDte, sellThroughProbability);
   const discountRate = DISCOUNT_RATES[tier];
 
-  // --- DONATION tier handling (Requirements 5.4, 8.7) ---
-  if (tier === 'DONATION') {
+  // --- Non-retail outcomes: DONATION and PULL (Requirements 5.4, 8.7) ---
+  if (tier === 'DONATION' || tier === 'PULL') {
     return {
       ok: true,
       value: {
@@ -132,14 +151,16 @@ export function buildPricingDecision(
         evaluatedAtIso: evaluatedAt,
         effectiveDte,
         sellThroughProbability,
-        tier: 'DONATION',
+        tier,
         discountRate: 0.0,
         computedPricePerUnit: null,
         salvageFloorPerUnit: roundedCost,
         msrpPerUnit: roundedMsrp,
         boundednessVerified: false,
         rationale:
-          'Batch routed to food bank donation (effective DTE <= 1.0 and sell-through probability < 0.1)',
+          tier === 'DONATION'
+            ? `Batch routed to food bank donation (${effectiveDte.toFixed(1)} days left — enough time for pickup and distribution, too little to sell through).`
+            : `Batch pulled from sale (${effectiveDte.toFixed(1)} days left — below the 1-day minimum for shoppers and food banks).`,
       },
     };
   }

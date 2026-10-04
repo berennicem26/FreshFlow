@@ -20,6 +20,7 @@ const TIER_URGENCY: Record<string, number> = {
   TIER_2: 2,
   TIER_3: 3,
   DONATION: 4,
+  PULL: 5,
 };
 
 describe('Property 4: Universal Price Boundedness (Requirements 8.1, 8.5, 8.6)', () => {
@@ -28,14 +29,14 @@ describe('Property 4: Universal Price Boundedness (Requirements 8.1, 8.5, 8.6)',
       fc.property(
         arbPerishableBatch,
         fc.double({ min: 0.1, max: 10.0, noNaN: true }),
-        fc.double({ min: 0.15, max: 1.0, noNaN: true }), // STP >= 0.15 avoids DONATION tier
+        fc.double({ min: 0.0, max: 1.0, noNaN: true }),
         (batch, dte, stp) => {
           const res = buildPricingDecision(batch, dte, stp, '2026-10-03T12:00:00Z');
 
           expect(res.ok).toBe(true);
           if (res.ok) {
             const decision = res.value;
-            if (decision.tier !== 'DONATION') {
+            if (decision.tier !== 'DONATION' && decision.tier !== 'PULL') {
               expect(decision.computedPricePerUnit).not.toBeNull();
               expect(decision.computedPricePerUnit!).toBeGreaterThanOrEqual(
                 batch.costBasisPerUnit
@@ -44,6 +45,8 @@ describe('Property 4: Universal Price Boundedness (Requirements 8.1, 8.5, 8.6)',
                 batch.msrpPerUnit
               );
               expect(decision.boundednessVerified).toBe(true);
+            } else {
+              expect(decision.computedPricePerUnit).toBeNull();
             }
           }
         }
@@ -57,10 +60,11 @@ describe('Property 5: Tier Escalation & Monotonicity (Requirements 4.5, 5.5)', (
   it('assigns greater or equal tier urgency as effective DTE decreases', () => {
     fc.assert(
       fc.property(
-        fc.double({ min: 0.1, max: 2.0, noNaN: true }),
-        fc.double({ min: 2.01, max: 10.0, noNaN: true }),
+        fc.double({ min: 0.1, max: 10.0, noNaN: true }),
+        fc.double({ min: 0.0, max: 5.0, noNaN: true }),
         fc.double({ min: 0.0, max: 1.0, noNaN: true }),
-        (dteLow, dteHigh, stp) => {
+        (dteLow, gap, stp) => {
+          const dteHigh = dteLow + gap;
           const tierHigherUrgency = evaluatePricingTier(dteLow, stp);
           const tierLowerUrgency = evaluatePricingTier(dteHigh, stp);
 
@@ -73,14 +77,14 @@ describe('Property 5: Tier Escalation & Monotonicity (Requirements 4.5, 5.5)', (
     );
   });
 
-  it('discount rates are monotonically non-decreasing as DTE decreases (for retail tiers)', () => {
+  it('discount rates are monotonically non-decreasing as DTE decreases (within the retail window)', () => {
     fc.assert(
       fc.property(
-        fc.double({ min: 0.1, max: 2.0, noNaN: true }),
-        fc.double({ min: 2.01, max: 10.0, noNaN: true }),
+        fc.double({ min: 2.01, max: 3.0, noNaN: true }),
+        fc.double({ min: 3.01, max: 10.0, noNaN: true }),
         (dteLow, dteHigh) => {
-          // Fixed moderate sell-through probability
-          const stp = 0.5;
+          // Moderate sell-through keeps both points on the retail (non-donation) path
+          const stp = 0.6;
           const tierLow = evaluatePricingTier(dteLow, stp);
           const tierHigh = evaluatePricingTier(dteHigh, stp);
 

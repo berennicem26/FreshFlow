@@ -15,7 +15,7 @@ import { existsSync, mkdirSync, readFileSync } from 'fs';
 import { createInterface } from 'readline';
 import { join } from 'path';
 
-// Category Q10 coefficients (Arrhenius kinetics)
+// Category Q10 coefficients (temperature sensitivity per +10°C)
 const Q10_MAP = {
   Dairy: 2.5,
   Produce: 2.2,
@@ -25,14 +25,50 @@ const Q10_MAP = {
   Prepared: 2.4,
 };
 
-// Markdown Tiers
-const MARKDOWN_TIERS = [
-  { tier: 0, discount: 0.00, label: 'Full Price' },
-  { tier: 1, discount: 0.15, label: '15% Markdown' },
-  { tier: 2, discount: 0.35, label: '35% Markdown' },
-  { tier: 3, discount: 0.55, label: '55% Markdown' },
-  { tier: 4, discount: 0.70, label: '70% Clearance' },
-];
+// ---------------------------------------------------------------------------
+// Mirrors lib/core/storageProfile.ts and lib/core/retailPolicy.ts (keep in sync).
+// Outdoor weather is NOT product temperature: coolers hold ~4°C, shelves follow
+// the store's HVAC-dampened indoor temperature.
+// ---------------------------------------------------------------------------
+const DEFAULT_ZONE = {
+  Dairy: 'refrigerated',
+  Meat: 'refrigerated',
+  Seafood: 'refrigerated',
+  Prepared: 'refrigerated',
+  Produce: 'ambient',
+  Bakery: 'ambient',
+};
+const ZONE_REFERENCE_C = { refrigerated: 4.0, ambient: 20.0 };
+
+function productTemperatureC(zone, outdoorC) {
+  if (zone === 'refrigerated') return 4.0 + 0.15 * Math.max(0, outdoorC - 20.0);
+  return Math.min(30.0, Math.max(16.0, 20.0 + 0.4 * (outdoorC - 20.0)));
+}
+
+function decayMultiplier(category, zone, outdoorC) {
+  const q10 = Q10_MAP[category] || 2.2;
+  const productC = productTemperatureC(zone, outdoorC);
+  return { q10, productC, multiplier: Math.pow(q10, (productC - ZONE_REFERENCE_C[zone]) / 10.0) };
+}
+
+// Markdown tiers (same rates as lib/core/pricingEngine.ts)
+const MARKDOWN_TIERS = {
+  NONE: { tier: 0, discount: 0.0, label: 'Full Price' },
+  TIER_1: { tier: 1, discount: 0.15, label: '15% Markdown' },
+  TIER_2: { tier: 2, discount: 0.35, label: '35% Markdown' },
+  TIER_3: { tier: 3, discount: 0.5, label: '50% Final Markdown' },
+};
+
+// Same schedule as lib/core/retailPolicy.ts
+function evaluateTier(dte, stp) {
+  if (dte < 1.0) return 'PULL';
+  if (dte <= 2.0) return 'DONATION';
+  if (dte <= 3.0 && stp < 0.5) return 'DONATION';
+  if (dte <= 3.0) return 'TIER_3';
+  if (dte <= 4.0) return 'TIER_2';
+  if (dte <= 5.0 && stp < 0.9) return 'TIER_1';
+  return 'NONE';
+}
 
 // Seeded batches
 const INVENTORY = [
@@ -43,17 +79,18 @@ const INVENTORY = [
     costBasis: 2.10,
     originalPrice: 4.99,
     quantity: 45,
-    daysToExpiration: 2.5,
+    daysToExpiration: 4.6,
     salesVelocity: 12.0,
   },
   {
     id: 'BATCH-PRODUCE-002',
     productName: 'Baby Spinach 16oz Clamshell',
     category: 'Produce',
+    storageZone: 'refrigerated',
     costBasis: 1.40,
     originalPrice: 3.49,
     quantity: 28,
-    daysToExpiration: 1.8,
+    daysToExpiration: 3.4,
     salesVelocity: 8.0,
   },
   {
@@ -63,7 +100,7 @@ const INVENTORY = [
     costBasis: 8.50,
     originalPrice: 16.99,
     quantity: 14,
-    daysToExpiration: 1.2,
+    daysToExpiration: 3.2,
     salesVelocity: 3.0,
   },
   {
@@ -73,7 +110,7 @@ const INVENTORY = [
     costBasis: 7.20,
     originalPrice: 14.50,
     quantity: 18,
-    daysToExpiration: 0.8,
+    daysToExpiration: 2.6,
     salesVelocity: 2.0,
   },
   {
@@ -83,7 +120,7 @@ const INVENTORY = [
     costBasis: 1.10,
     originalPrice: 4.25,
     quantity: 22,
-    daysToExpiration: 1.5,
+    daysToExpiration: 2.6,
     salesVelocity: 6.0,
   },
   {
@@ -93,7 +130,7 @@ const INVENTORY = [
     costBasis: 3.00,
     originalPrice: 7.99,
     quantity: 8,
-    daysToExpiration: 0.4,
+    daysToExpiration: 1.8,
     salesVelocity: 1.5,
   },
 ];
@@ -183,7 +220,7 @@ const TOOLS = [
   },
   {
     name: 'evaluate_batch_markdown',
-    description: 'Evaluate thermal decay kinetics, effective shelf life, sell-through probability, and calculate optimal dynamic markdown tier with 30% price floor protection.',
+    description: 'Evaluate thermal decay kinetics, effective shelf life, sell-through probability, and calculate the markdown tier (or donation / pull decision) with cost-basis price floor protection. Outdoor temperature is translated into cooler or shelf product temperature.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -193,7 +230,7 @@ const TOOLS = [
         },
         ambientTempC: {
           type: 'number',
-          description: 'Store ambient temperature in Celsius (default: 22.0°C)',
+          description: 'Outdoor temperature in Celsius (default: 22.0°C)',
         },
       },
       required: ['batchId'],
@@ -300,11 +337,11 @@ async function handleToolCall(name, args) {
         source = 'telemetry-fallback-cache';
       }
 
-      // Calculate decay acceleration across all categories
+      // Translate outdoor temperature into product temperature per department, then decay speed
       const decayMultipliers = {};
-      for (const [cat, q10] of Object.entries(Q10_MAP)) {
-        const excess = Math.max(0, temperatureC - 4.0);
-        decayMultipliers[cat] = Number(Math.pow(q10, excess / 10.0).toFixed(2));
+      for (const cat of Object.keys(Q10_MAP)) {
+        const zone = DEFAULT_ZONE[cat] || 'refrigerated';
+        decayMultipliers[cat] = Number(decayMultiplier(cat, zone, temperatureC).multiplier.toFixed(2));
       }
 
       // Log WEATHER_SYNC into SQLite Audit Ledger
@@ -345,19 +382,20 @@ async function handleToolCall(name, args) {
     }
 
     case 'calculate_arrhenius_decay': {
-      const q10 = Q10_MAP[args.category] || 2.2;
-      const tempDelta = Math.max(0, args.ambientTempC - 4.0);
-      const thermalMultiplier = Math.pow(q10, tempDelta / 10.0);
-      const effectiveDays = args.nominalDays / thermalMultiplier;
+      const zone = args.storageZone || DEFAULT_ZONE[args.category] || 'refrigerated';
+      const { q10, productC, multiplier } = decayMultiplier(args.category, zone, args.ambientTempC);
+      const effectiveDays = args.nominalDays / multiplier;
       return {
         category: args.category,
+        storageZone: zone,
         q10Sensitivity: q10,
-        referenceTempC: 4.0,
-        ambientTempC: args.ambientTempC,
-        thermalMultiplier: Number(thermalMultiplier.toFixed(3)),
+        referenceTempC: ZONE_REFERENCE_C[zone],
+        outdoorTempC: args.ambientTempC,
+        productTempC: Number(productC.toFixed(2)),
+        thermalMultiplier: Number(multiplier.toFixed(3)),
         nominalDays: args.nominalDays,
         effectiveDays: Number(effectiveDays.toFixed(2)),
-        decayFactorPercentage: `${((thermalMultiplier - 1) * 100).toFixed(1)}% faster degradation`,
+        decayFactorPercentage: `${((multiplier - 1) * 100).toFixed(1)}% faster degradation`,
       };
     }
 
@@ -367,35 +405,41 @@ async function handleToolCall(name, args) {
         throw new Error(`Batch not found: ${args.batchId}`);
       }
       const ambientTempC = args.ambientTempC !== undefined ? args.ambientTempC : 22.0;
-      const q10 = Q10_MAP[batch.category] || 2.2;
-      const tempDelta = Math.max(0, ambientTempC - 4.0);
-      const thermalMultiplier = Math.pow(q10, tempDelta / 10.0);
-      const effectiveDte = batch.daysToExpiration / thermalMultiplier;
+      const zone = batch.storageZone || DEFAULT_ZONE[batch.category] || 'refrigerated';
+      const { productC, multiplier } = decayMultiplier(batch.category, zone, ambientTempC);
+      const effectiveDte = batch.daysToExpiration / multiplier;
       const sellThroughProb = Math.min(1.0, (batch.salesVelocity * effectiveDte) / batch.quantity);
 
-      const isCritical = effectiveDte <= 1.0 && sellThroughProb < 0.10;
+      const tierKey = evaluateTier(effectiveDte, sellThroughProb);
+      const recommendation =
+        tierKey === 'DONATION' ? 'ROUTE_TO_DONATION' : tierKey === 'PULL' ? 'PULL_FROM_SALE' : 'APPLY_DYNAMIC_MARKDOWN';
 
-      let tierIndex = 0;
-      if (effectiveDte <= 1.0) tierIndex = 4;
-      else if (effectiveDte <= 2.0) tierIndex = 3;
-      else if (effectiveDte <= 3.0) tierIndex = 2;
-      else if (effectiveDte <= 5.0) tierIndex = 1;
-
-      const tier = MARKDOWN_TIERS[tierIndex];
-      const unconstrainedPrice = batch.originalPrice * (1 - tier.discount);
-      const floorPrice = 0.30 * batch.originalPrice;
-      const finalPrice = Math.max(floorPrice, unconstrainedPrice);
-
-      return {
+      const base = {
         batchId: batch.id,
         productName: batch.productName,
         category: batch.category,
-        ambientTempC,
-        thermalMultiplier: Number(thermalMultiplier.toFixed(2)),
+        storageZone: zone,
+        outdoorTempC: ambientTempC,
+        productTempC: Number(productC.toFixed(2)),
+        thermalMultiplier: Number(multiplier.toFixed(2)),
         nominalDte: batch.daysToExpiration,
         effectiveDte: Number(effectiveDte.toFixed(2)),
         sellThroughProbability: Number(sellThroughProb.toFixed(3)),
-        recommendation: isCritical ? 'ROUTE_TO_DONATION' : 'APPLY_DYNAMIC_MARKDOWN',
+        recommendation,
+      };
+
+      if (tierKey === 'DONATION' || tierKey === 'PULL') {
+        return { ...base, pricing: null };
+      }
+
+      const tier = MARKDOWN_TIERS[tierKey];
+      const unconstrainedPrice = batch.originalPrice * (1 - tier.discount);
+      // Price floor = unit cost basis (never sell below cost), same as the app
+      const floorPrice = batch.costBasis;
+      const finalPrice = Math.max(floorPrice, unconstrainedPrice);
+
+      return {
+        ...base,
         pricing: {
           originalPrice: batch.originalPrice,
           tier: tier.tier,

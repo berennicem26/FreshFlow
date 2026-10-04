@@ -22,6 +22,11 @@ import { computeThermalDecayFactor } from '@/lib/core/thermalCalculator';
 import { computeEffectiveDte } from '@/lib/core/shelfLifeCalculator';
 import { buildPricingDecision } from '@/lib/core/pricingEngine';
 import { buildDonationManifest, shouldDonate } from '@/lib/core/donationRouter';
+import {
+  resolveStorageZone,
+  estimateProductTemperatureC,
+  ZONE_REFERENCE_C,
+} from '@/lib/core/storageProfile';
 import type { TemperatureReading } from '@/lib/types';
 
 export async function POST(
@@ -57,19 +62,24 @@ export async function POST(
 
     const options = parseResult.data;
     const nowIso = options.nowIso ?? new Date().toISOString();
+    const storageZone = resolveStorageZone(batch);
+    // Default: the batch's own cooler/shelf sensor readings (already product temperature).
     let temperatureReadings: TemperatureReading[] = [...batch.temperatureHistory];
     let weatherRationaleNote = '';
 
-    // Step 1: Ingest ambient temperature
+    // Converts an outdoor/store-ambient reading into the temperature the product actually sees.
+    const toProductReading = (r: TemperatureReading): TemperatureReading => ({
+      timestampIso: r.timestampIso,
+      celsius: Number(estimateProductTemperatureC(storageZone, r.celsius).toFixed(2)),
+    });
+
+    // Step 1: Ingest outdoor temperature and translate it to product temperature
     if (options.simulatedTemperatureCelsius !== undefined) {
-      // Manual simulation mode (heatwave slider)
+      // Manual simulation mode (heatwave slider = outdoor temperature)
       temperatureReadings = [
-        {
-          timestampIso: nowIso,
-          celsius: options.simulatedTemperatureCelsius,
-        },
+        toProductReading({ timestampIso: nowIso, celsius: options.simulatedTemperatureCelsius }),
       ];
-      weatherRationaleNote = `Ambient temperature simulated at ${options.simulatedTemperatureCelsius}°C.`;
+      weatherRationaleNote = `Outdoor temperature simulated at ${options.simulatedTemperatureCelsius}°C → ${storageZone} product at ${temperatureReadings[0].celsius}°C.`;
     } else {
       // Live or cached WeatherSync
       try {
@@ -80,15 +90,15 @@ export async function POST(
           longitude: options.longitude ?? -118.2437,
         });
         if (weatherRecord.readings.length > 0) {
-          temperatureReadings = weatherRecord.readings;
-          weatherRationaleNote = `Weather data synchronized from Open-Meteo (fetched: ${weatherRecord.fetchedAtIso}).`;
+          temperatureReadings = weatherRecord.readings.map(toProductReading);
+          weatherRationaleNote = `Weather data synchronized from Open-Meteo (fetched: ${weatherRecord.fetchedAtIso}); translated to ${storageZone} product temperature.`;
         }
       } catch {
         weatherRationaleNote = 'Weather service unavailable; using batch internal sensor history.';
       }
     }
 
-    // Step 2: Compute thermal decay factor (category-specific Q10)
+    // Step 2: Compute thermal decay factor (category-specific Q10, zone-specific reference)
     const CATEGORY_Q10: Record<string, number> = {
       dairy: 2.5,
       produce: 2.2,
@@ -100,7 +110,8 @@ export async function POST(
     const q10Coefficient = CATEGORY_Q10[batch.category.toLowerCase()] ?? 2.5;
 
     const thermalFactorsConfig = {
-      referenceTemperatureCelsius: 4.0,
+      // Normal conditions for this display zone → decay factor 1.0
+      referenceTemperatureCelsius: ZONE_REFERENCE_C[storageZone],
       q10Coefficient,
       activationEnergyKJ: 50,
     };
@@ -154,21 +165,12 @@ export async function POST(
     }
 
     // Step 5: Check Donation Eligibility
+    // Pricing tier and shouldDonate share lib/core/retailPolicy.ts, so they always agree.
     let donationManifest = null;
     const isDonationCandidate =
-      decision.tier === 'DONATION' || shouldDonate(effectiveDte, sellThroughProbability);
+      decision.tier === 'DONATION' && shouldDonate(effectiveDte, sellThroughProbability);
 
     if (isDonationCandidate) {
-      if (decision.tier !== 'DONATION') {
-        decision = {
-          ...decision,
-          tier: 'DONATION',
-          computedPricePerUnit: null,
-          discountRate: 0,
-          rationale: `Batch routed to emergency food bank donation (effective DTE < 0.5 days). ${decision.rationale}`,
-        };
-      }
-
       const storeCoords = {
         latitude: options.latitude ?? 34.0522,
         longitude: options.longitude ?? -118.2437,
@@ -207,9 +209,14 @@ export async function POST(
       });
     }
 
+    const productTemperatureCelsius =
+      temperatureReadings.reduce((s, r) => s + r.celsius, 0) / temperatureReadings.length;
+
     return NextResponse.json({
       ok: true,
       batchId: batch.batchId,
+      storageZone,
+      productTemperatureCelsius: Number(productTemperatureCelsius.toFixed(1)),
       thermalDecay: thermalResult.value,
       effectiveDte,
       sellThroughProbability,

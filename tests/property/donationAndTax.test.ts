@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import * as fc from 'fast-check';
 import { shouldDonate } from '../../lib/core/donationRouter';
+import { evaluatePricingTier } from '../../lib/core/pricingEngine';
 import { computeIrsDeduction } from '../../lib/core/taxValuator';
 
 describe('Property 6: IRS Deduction Correctness & Bounds (Requirements 7.1, 7.2, 7.3, 7.5)', () => {
@@ -40,15 +41,41 @@ describe('Property 6: IRS Deduction Correctness & Bounds (Requirements 7.1, 7.2,
   });
 });
 
-describe('Property 7: No Premature Donation (Requirement 6.6)', () => {
-  it('strictly returns false when effectiveDte >= 0.5 and sellThroughProbability >= 0.05', () => {
+describe('Property 7: No Premature or Too-Late Donation (Requirement 6.6)', () => {
+  it('never donates while stock can still sell (DTE > 3.0, or DTE > 2.0 with STP >= 0.5)', () => {
     fc.assert(
       fc.property(
-        fc.double({ min: 0.5, max: 30.0, noNaN: true }),
-        fc.double({ min: 0.05, max: 1.0, noNaN: true }),
+        fc.double({ min: 2.0001, max: 30.0, noNaN: true }),
+        fc.double({ min: 0.0, max: 1.0, noNaN: true }),
         (dte, stp) => {
-          const eligible = shouldDonate(dte, stp);
-          expect(eligible).toBe(false);
+          fc.pre(dte > 3.0 || stp >= 0.5);
+          expect(shouldDonate(dte, stp)).toBe(false);
+        }
+      ),
+      { numRuns: 500 }
+    );
+  });
+
+  it('never donates with less than 1 day left (food bank cannot use it in time)', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.0, max: 0.9999, noNaN: true }),
+        fc.double({ min: 0.0, max: 1.0, noNaN: true }),
+        (dte, stp) => {
+          expect(shouldDonate(dte, stp)).toBe(false);
+        }
+      ),
+      { numRuns: 500 }
+    );
+  });
+
+  it('donation eligibility always agrees with the DONATION pricing tier', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0.0, max: 10.0, noNaN: true }),
+        fc.double({ min: 0.0, max: 1.0, noNaN: true }),
+        (dte, stp) => {
+          expect(shouldDonate(dte, stp)).toBe(evaluatePricingTier(dte, stp) === 'DONATION');
         }
       ),
       { numRuns: 500 }

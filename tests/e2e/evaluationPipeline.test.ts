@@ -106,7 +106,7 @@ describe('Evaluation Pipeline E2E Smoke Tests', () => {
     }
   });
 
-  it('runs donation cycle when batch expires in < 0.5 days: generates manifest & persists audit record', async () => {
+  it('runs donation cycle when batch has 1–2 days left: generates manifest & persists audit record', async () => {
     const batchId = 'BATCH-DONATE-E2E';
     const batch: PerishableBatch = {
       batchId,
@@ -114,19 +114,19 @@ describe('Evaluation Pipeline E2E Smoke Tests', () => {
       productName: 'Greek Salad',
       category: 'prepared',
       storeId: 'STORE-001',
-      nominalShelfLifeDays: 3,
-      expiryDateIso: '2026-10-03T18:00:00Z', // Expiring in 6 hours (0.25 days)
+      nominalShelfLifeDays: 5,
+      expiryDateIso: '2026-10-05T00:00:00Z', // 1.5 days left — still usable by a food bank
       costBasisPerUnit: 2.5,
       msrpPerUnit: 6.99,
       quantityOnHand: 20,
-      temperatureHistory: [{ timestampIso: '2026-10-03T00:00:00Z', celsius: 20 }],
+      temperatureHistory: [{ timestampIso: '2026-10-03T00:00:00Z', celsius: 4 }],
       dailySalesVelocity: 2,
       createdAt: '2026-10-01T00:00:00Z',
     };
 
     const nowIso = '2026-10-03T12:00:00Z';
-    const effectiveDte = 0.25;
-    const sellThroughProb = 0.02;
+    const effectiveDte = 1.5;
+    const sellThroughProb = 0.15;
 
     const manifestRes = buildDonationManifest(
       batch,

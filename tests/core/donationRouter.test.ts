@@ -89,23 +89,28 @@ describe('donationRouter unit tests', () => {
     expect(dist).toBeLessThan(2.0);
   });
 
-  it('triggers donation when effectiveDte < 0.5 days (immediate spoilage threshold)', () => {
-    expect(shouldDonate(0.4, 0.9)).toBe(true);
+  it('triggers donation when 1.0 <= effectiveDte <= 2.0 (final window with food bank buffer)', () => {
+    expect(shouldDonate(1.5, 0.9)).toBe(true);
   });
 
-  it('triggers donation when effectiveDte <= 1.0 day AND sellThroughProbability < 0.05', () => {
-    expect(shouldDonate(0.9, 0.04)).toBe(true);
+  it('triggers early donation when effectiveDte <= 3.0 AND sellThroughProbability < 0.5', () => {
+    expect(shouldDonate(2.8, 0.3)).toBe(true);
   });
 
-  it('does NOT trigger donation when effectiveDte >= 0.5 and sellThroughProbability is viable', () => {
-    expect(shouldDonate(0.6, 0.8)).toBe(false);
+  it('does NOT trigger donation when effectiveDte > 2.0 and stock is still selling', () => {
+    expect(shouldDonate(2.8, 0.8)).toBe(false);
+    expect(shouldDonate(4.0, 0.1)).toBe(false);
   });
 
-  it('prioritizes effective_dte_below_threshold over sell_through_impossible when both conditions match', () => {
-    // effectiveDte = 0.3 (< 0.5) AND stp = 0.01 (< 0.05)
+  it('does NOT donate below 1.0 day — too late for pickup and distribution', () => {
+    expect(shouldDonate(0.6, 0.01)).toBe(false);
+  });
+
+  it('prioritizes effective_dte_below_threshold over sell_through_impossible inside the final window', () => {
+    // effectiveDte = 1.5 (<= 2.0) AND stp = 0.01 (< 0.5)
     const res = buildDonationManifest(
       testBatch,
-      0.3,
+      1.5,
       0.01,
       storeCoords,
       mockFoodBanks
@@ -123,8 +128,16 @@ describe('donationRouter unit tests', () => {
     }
   });
 
+  it('uses sell_through_impossible for early donations (2.0 < DTE <= 3.0)', () => {
+    const res = buildDonationManifest(testBatch, 2.6, 0.2, storeCoords, mockFoodBanks);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.triggerReason).toBe('sell_through_impossible');
+    }
+  });
+
   it('fails with descriptive error when no active recipient is available', () => {
-    const res = buildDonationManifest(testBatch, 0.4, 0.5, storeCoords, []);
+    const res = buildDonationManifest(testBatch, 1.5, 0.5, storeCoords, []);
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.error).toBe('no active recipient is configured');

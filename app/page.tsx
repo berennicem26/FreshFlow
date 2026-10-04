@@ -23,6 +23,8 @@ interface EvaluationState {
   effectiveDte: number;
   decayFactor: number;
   donationManifest: DonationManifest | null;
+  storageZone: 'refrigerated' | 'ambient';
+  productTemperatureCelsius: number;
 }
 
 export default function FreshFlowDashboard() {
@@ -74,6 +76,8 @@ export default function FreshFlowDashboard() {
             effectiveDte: data.effectiveDte,
             decayFactor: data.thermalDecay.computedDecayFactor,
             donationManifest: data.donationManifest,
+            storageZone: data.storageZone,
+            productTemperatureCelsius: data.productTemperatureCelsius,
           },
         }));
       }
@@ -149,6 +153,12 @@ export default function FreshFlowDashboard() {
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">
             <HeartHandshake className="w-3 h-3 mr-1" /> Donate (Food Bank)
+          </span>
+        );
+      case 'PULL':
+        return (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-500/10 text-neutral-300 border border-neutral-500/30">
+            <AlertTriangle className="w-3 h-3 mr-1" /> Pull from Shelf
           </span>
         );
       default:
@@ -249,7 +259,7 @@ export default function FreshFlowDashboard() {
 
           <div className="p-5 rounded-2xl bg-neutral-900/50 border border-neutral-800 flex items-center justify-between">
             <div>
-              <p className="text-xs font-medium text-neutral-400">Store Ambient Temp</p>
+              <p className="text-xs font-medium text-neutral-400">Outdoor Temperature</p>
               <p className="text-2xl font-bold text-cyan-400 mt-1">{ambientTemp.toFixed(1)}°C</p>
               <p className="text-xs text-cyan-300/80 mt-1">Open-Meteo Climate Sync</p>
             </div>
@@ -266,12 +276,12 @@ export default function FreshFlowDashboard() {
               <div className="flex items-center gap-2">
                 <Flame className={`w-5 h-5 ${ambientTemp > 25 ? 'text-rose-500 animate-pulse' : 'text-amber-400'}`} />
                 <h2 className="text-base font-semibold text-white">
-                  Ambient Temperature & Heatwave Simulator (MCP Open-Meteo)
+                  Heatwave Simulator (Open-Meteo Weather)
                 </h2>
               </div>
               <p className="text-xs text-neutral-400">
-                Adjust store temperature to simulate hot weather or cold-storage fluctuation.
-                Notice how biological decay acceleration compresses effective shelf-life and triggers earlier discounts!
+                Set the outdoor temperature. Coolers stay cold but work harder in a heatwave, while
+                room-temperature shelves warm up with the store. Watch shelf-life shrink and discounts start earlier.
               </p>
             </div>
 
@@ -350,27 +360,33 @@ export default function FreshFlowDashboard() {
                         <span className="inline-block px-2 py-0.5 rounded text-[11px] bg-neutral-800 text-neutral-300 uppercase">
                           {batch.category}
                         </span>
+                        {evalState && (
+                          <div className="text-[10px] text-neutral-500 mt-1">
+                            {evalState.storageZone === 'refrigerated' ? 'Cooler' : 'Shelf'} ·{' '}
+                            {evalState.productTemperatureCelsius.toFixed(1)}°C
+                          </div>
+                        )}
                       </td>
 
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-2 font-semibold">
                           <Clock className="w-3.5 h-3.5 text-neutral-400" />
-                          <span className={dte < 1.0 ? 'text-rose-400 font-bold' : dte < 2.0 ? 'text-amber-400' : 'text-emerald-400'}>
+                          <span className={dte <= 2.0 ? 'text-rose-400 font-bold' : dte <= 4.0 ? 'text-amber-400' : 'text-emerald-400'}>
                             {dte.toFixed(1)} days left
                           </span>
                         </div>
                         <div className="w-28 bg-neutral-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
-                              dte < 1.0 ? 'bg-rose-500' : dte < 2.0 ? 'bg-amber-500' : 'bg-emerald-500'
+                              dte <= 2.0 ? 'bg-rose-500' : dte <= 4.0 ? 'bg-amber-500' : 'bg-emerald-500'
                             }`}
-                            style={{ width: `${Math.min(100, Math.max(8, (dte / 5) * 100))}%` }}
+                            style={{ width: `${Math.min(100, Math.max(8, (dte / 7) * 100))}%` }}
                           />
                         </div>
                       </td>
 
                       <td className="py-4 px-4">
-                        <span className={`font-semibold ${decay > 1.2 ? 'text-rose-400' : 'text-neutral-300'}`}>
+                        <span className={`font-semibold ${decay > 1.3 ? 'text-rose-400' : decay > 1.05 ? 'text-amber-400' : 'text-neutral-300'}`}>
                           {decay.toFixed(2)}× speed
                         </span>
                       </td>
@@ -393,8 +409,8 @@ export default function FreshFlowDashboard() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-purple-400 font-semibold text-xs">
-                            Donation Routing
+                          <span className={`${tier === 'PULL' ? 'text-neutral-400' : 'text-purple-400'} font-semibold text-xs`}>
+                            {tier === 'PULL' ? 'Removed from Sale' : 'Donation Routing'}
                           </span>
                         )}
                       </td>

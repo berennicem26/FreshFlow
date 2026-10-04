@@ -19,7 +19,19 @@ export type Result<T> =
 
 export type ProductCategory = 'produce' | 'dairy' | 'meat' | 'bakery' | 'prepared';
 
-export type MarkdownTier = 'NONE' | 'TIER_1' | 'TIER_2' | 'TIER_3' | 'DONATION';
+/**
+ * Markdown tiers in ascending urgency.
+ * - DONATION: routed to a food bank while enough shelf-life remains for pickup & distribution.
+ * - PULL: too close to its date for shoppers or food banks; removed from sale.
+ */
+export type MarkdownTier = 'NONE' | 'TIER_1' | 'TIER_2' | 'TIER_3' | 'DONATION' | 'PULL';
+
+/**
+ * Where a batch is physically displayed in the store.
+ * - refrigerated: chilled display case (held near 4°C regardless of room temperature)
+ * - ambient: room-temperature shelf (follows the store's indoor temperature)
+ */
+export type StorageZone = 'refrigerated' | 'ambient';
 
 // ---------------------------------------------------------------------------
 // Core data models
@@ -35,12 +47,15 @@ export interface PerishableBatch {
   readonly sku: string;
   readonly productName: string;
   readonly category: ProductCategory;
+  /** Optional display zone; defaults by category when absent (see lib/core/storageProfile.ts). */
+  readonly storageZone?: StorageZone;
   readonly storeId: string;
   readonly nominalShelfLifeDays: number;
   readonly expiryDateIso: string;
   readonly costBasisPerUnit: number;
   readonly msrpPerUnit: number;
   readonly quantityOnHand: number;
+  /** Product-level temperature readings (cooler / shelf sensors), not outdoor weather. */
   readonly temperatureHistory: TemperatureReading[];
   readonly dailySalesVelocity: number;
   readonly createdAt: string;

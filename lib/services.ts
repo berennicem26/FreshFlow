@@ -67,139 +67,146 @@ export const REGISTERED_FOOD_BANKS: FoodBank[] = [
 ];
 
 // Seeded batches
+//
+// "Days left" values are realistic for a supermarket floor and are chosen so that at a
+// normal 20°C day every stage of the lifecycle is visible, and a heatwave visibly
+// pushes each batch one stage forward:
+//
+//   Product (zone)              days  20°C outdoor          32°C outdoor
+//   Avocados (shelf)            7.0   Full price            Tier 1 (-15%)
+//   Honeycrisp Apples (shelf)   4.8   Tier 1 (-15%)         Tier 2 (-35%)
+//   Strawberries (cooler)       3.3   Tier 2 (-35%)         Tier 3 (-50%)
+//   Whole Milk (cooler)         4.6   Full price (sells fast) Tier 2 (-35%)
+//   Sourdough (shelf)           2.6   Tier 3 (-50%)         Donate
+//   Salmon (cooler)             2.6   Donate (slow seller)  Donate
+//   Greek Salad (cooler)        1.8   Donate                Donate
+//
+// Coolers hold ~4°C, so a heatwave affects them modestly (~1.15–1.2× faster);
+// room-temperature shelves follow the store's indoor temperature (~1.4–1.5× faster).
 function getInitialBatches(): Map<string, PerishableBatch> {
   const batches = new Map<string, PerishableBatch>();
   const now = new Date();
+  const inDays = (d: number) => new Date(now.getTime() + d * 86_400_000).toISOString();
+  const cooler = [{ timestampIso: now.toISOString(), celsius: 4.0 }];
+  const shelf = [{ timestampIso: now.toISOString(), celsius: 20.0 }];
 
   const add = (batch: PerishableBatch) => batches.set(batch.batchId, batch);
 
-  // 0. Avocados (produce, fresh lot):
-  // At 20°C: decay factor 3.53x, DTE_eff = 14.0 / 3.53 = 3.96d -> NONE (Full Price 0%, $5.99)
-  // At 32°C: decay factor 9.09x, DTE_eff = 14.0 / 9.09 = 1.54d -> Tier 2 (-35%, $3.89)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0000',
     sku: 'SKU-AVOCADO-00',
     productName: 'Fresh Hass Avocados 4pk',
     category: 'produce',
+    storageZone: 'ambient',
     storeId: 'STORE-LA-01',
-    nominalShelfLifeDays: 14,
-    expiryDateIso: new Date(now.getTime() + 14.0 * 86_400_000).toISOString(),
+    nominalShelfLifeDays: 10,
+    expiryDateIso: inDays(7.0),
     costBasisPerUnit: 2.4,
     msrpPerUnit: 5.99,
-    quantityOnHand: 40,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
-    dailySalesVelocity: 10,
+    quantityOnHand: 48,
+    temperatureHistory: shelf,
+    dailySalesVelocity: 6,
     createdAt: now.toISOString(),
   });
 
-  // 1. Honeycrisp Apples (produce, early-stage clearance):
-  // At 20°C: decay factor 3.53x, DTE_eff = 8.5 / 3.53 = 2.41d, sell-through 0.48 -> Tier 1 (-15%, $4.24)
-  // At 32°C: decay factor 9.09x, DTE_eff = 8.5 / 9.09 = 0.93d -> Tier 3 (-50%, $2.49)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0006',
     sku: 'SKU-APPLE-06',
     productName: 'Crisp Honeycrisp Apples 3lb',
     category: 'produce',
+    storageZone: 'ambient',
     storeId: 'STORE-LA-01',
-    nominalShelfLifeDays: 10,
-    expiryDateIso: new Date(now.getTime() + 8.5 * 86_400_000).toISOString(),
+    nominalShelfLifeDays: 14,
+    expiryDateIso: inDays(4.8),
     costBasisPerUnit: 2.1,
     msrpPerUnit: 4.99,
-    quantityOnHand: 40,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
+    quantityOnHand: 60,
+    temperatureHistory: shelf,
     dailySalesVelocity: 8,
     createdAt: now.toISOString(),
   });
 
-  // 2. Strawberries (produce, Q10 = 2.2):
-  // At 20°C: decay factor 3.53x, DTE_eff = 4.2 / 3.53 = 1.19d -> Tier 2 (-35%, $3.24)
-  // At 32°C: decay factor 9.09x, DTE_eff = 4.2 / 9.09 = 0.46d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0001',
     sku: 'SKU-BERRY-01',
     productName: 'Organic Strawberries 1lb',
     category: 'produce',
+    storageZone: 'refrigerated',
     storeId: 'STORE-LA-01',
-    nominalShelfLifeDays: 5,
-    expiryDateIso: new Date(now.getTime() + 4.2 * 86_400_000).toISOString(),
+    nominalShelfLifeDays: 7,
+    expiryDateIso: inDays(3.3),
     costBasisPerUnit: 2.2,
     msrpPerUnit: 4.99,
-    quantityOnHand: 45,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
+    quantityOnHand: 36,
+    temperatureHistory: cooler,
     dailySalesVelocity: 12,
     createdAt: now.toISOString(),
   });
 
-  // 2. Salmon (meat, Q10 = 2.8):
-  // At 20°C: decay factor 5.17x, DTE_eff = 1.5 / 5.17 = 0.29d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0002',
     sku: 'SKU-SALMON-02',
     productName: 'Fresh Atlantic Salmon Fillet 8oz',
     category: 'meat',
+    storageZone: 'refrigerated',
     storeId: 'STORE-LA-01',
-    nominalShelfLifeDays: 3,
-    expiryDateIso: new Date(now.getTime() + 1.5 * 86_400_000).toISOString(),
+    nominalShelfLifeDays: 5,
+    expiryDateIso: inDays(2.6),
     costBasisPerUnit: 5.5,
     msrpPerUnit: 11.99,
     quantityOnHand: 18,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 4.0 }],
-    dailySalesVelocity: 8,
+    temperatureHistory: cooler,
+    dailySalesVelocity: 2,
     createdAt: now.toISOString(),
   });
 
-  // 3. Salad (prepared, Q10 = 2.4):
-  // At 20°C: decay factor 4.07x, DTE_eff = 1.4 / 4.07 = 0.34d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0003',
     sku: 'SKU-SALAD-03',
     productName: 'Greek Salad Bowl with Feta 12oz',
     category: 'prepared',
+    storageZone: 'refrigerated',
     storeId: 'STORE-LA-01',
-    nominalShelfLifeDays: 4,
-    expiryDateIso: new Date(now.getTime() + 1.4 * 86_400_000).toISOString(),
+    nominalShelfLifeDays: 5,
+    expiryDateIso: inDays(1.8),
     costBasisPerUnit: 2.9,
     msrpPerUnit: 6.99,
     quantityOnHand: 30,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
+    temperatureHistory: cooler,
     dailySalesVelocity: 5,
     createdAt: now.toISOString(),
   });
 
-  // 4. Whole Milk (dairy, Q10 = 2.5):
-  // At 20°C: decay factor 4.33x, DTE_eff = 4.6 / 4.33 = 1.06d -> Tier 2 (-35%, $2.92)
-  // At 32°C: decay factor 12.96x, DTE_eff = 4.6 / 12.96 = 0.35d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0004',
     sku: 'SKU-MILK-04',
     productName: 'Organic Whole Milk 1gal',
     category: 'dairy',
+    storageZone: 'refrigerated',
     storeId: 'STORE-LA-01',
-    nominalShelfLifeDays: 10,
-    expiryDateIso: new Date(now.getTime() + 4.6 * 86_400_000).toISOString(),
+    nominalShelfLifeDays: 14,
+    expiryDateIso: inDays(4.6),
     costBasisPerUnit: 2.1,
     msrpPerUnit: 4.49,
     quantityOnHand: 55,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 3.5 }],
+    temperatureHistory: cooler,
     dailySalesVelocity: 15,
     createdAt: now.toISOString(),
   });
 
-  // 5. Artisan Sourdough (bakery, Q10 = 2.0):
-  // At 20°C: decay factor 3.03x, DTE_eff = 2.6 / 3.03 = 0.86d -> Tier 3 (-50%, $2.75)
-  // At 32°C: decay factor 6.96x, DTE_eff = 2.6 / 6.96 = 0.37d -> Donate (Food Bank)
   add({
     batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0005',
     sku: 'SKU-BREAD-05',
     productName: 'Artisan Sourdough Loaf 24oz',
     category: 'bakery',
+    storageZone: 'ambient',
     storeId: 'STORE-LA-01',
     nominalShelfLifeDays: 4,
-    expiryDateIso: new Date(now.getTime() + 2.6 * 86_400_000).toISOString(),
+    expiryDateIso: inDays(2.6),
     costBasisPerUnit: 1.8,
     msrpPerUnit: 5.49,
     quantityOnHand: 22,
-    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
+    temperatureHistory: shelf,
     dailySalesVelocity: 9,
     createdAt: now.toISOString(),
   });
