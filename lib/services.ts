@@ -73,7 +73,45 @@ function getInitialBatches(): Map<string, PerishableBatch> {
 
   const add = (batch: PerishableBatch) => batches.set(batch.batchId, batch);
 
-  // 1. Strawberries (produce, Q10 = 2.2):
+  // 0. Avocados (produce, fresh lot):
+  // At 20°C: decay factor 3.53x, DTE_eff = 14.0 / 3.53 = 3.96d -> NONE (Full Price 0%, $5.99)
+  // At 32°C: decay factor 9.09x, DTE_eff = 14.0 / 9.09 = 1.54d -> Tier 2 (-35%, $3.89)
+  add({
+    batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0000',
+    sku: 'SKU-AVOCADO-00',
+    productName: 'Fresh Hass Avocados 4pk',
+    category: 'produce',
+    storeId: 'STORE-LA-01',
+    nominalShelfLifeDays: 14,
+    expiryDateIso: new Date(now.getTime() + 14.0 * 86_400_000).toISOString(),
+    costBasisPerUnit: 2.4,
+    msrpPerUnit: 5.99,
+    quantityOnHand: 40,
+    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
+    dailySalesVelocity: 10,
+    createdAt: now.toISOString(),
+  });
+
+  // 1. Honeycrisp Apples (produce, early-stage clearance):
+  // At 20°C: decay factor 3.53x, DTE_eff = 8.5 / 3.53 = 2.41d, sell-through 0.48 -> Tier 1 (-15%, $4.24)
+  // At 32°C: decay factor 9.09x, DTE_eff = 8.5 / 9.09 = 0.93d -> Tier 3 (-50%, $2.49)
+  add({
+    batchId: '01918a20-8e3b-7a11-8a90-3a5e8f1b0006',
+    sku: 'SKU-APPLE-06',
+    productName: 'Crisp Honeycrisp Apples 3lb',
+    category: 'produce',
+    storeId: 'STORE-LA-01',
+    nominalShelfLifeDays: 10,
+    expiryDateIso: new Date(now.getTime() + 8.5 * 86_400_000).toISOString(),
+    costBasisPerUnit: 2.1,
+    msrpPerUnit: 4.99,
+    quantityOnHand: 40,
+    temperatureHistory: [{ timestampIso: now.toISOString(), celsius: 20.0 }],
+    dailySalesVelocity: 8,
+    createdAt: now.toISOString(),
+  });
+
+  // 2. Strawberries (produce, Q10 = 2.2):
   // At 20°C: decay factor 3.53x, DTE_eff = 4.2 / 3.53 = 1.19d -> Tier 2 (-35%, $3.24)
   // At 32°C: decay factor 9.09x, DTE_eff = 4.2 / 9.09 = 0.46d -> Donate (Food Bank)
   add({

@@ -124,7 +124,7 @@ export default function FreshFlowDashboard() {
       case 'NONE':
         return (
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Standard (0%)
+            Full Price (0%)
           </span>
         );
       case 'TIER_1':
