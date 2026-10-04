@@ -38,10 +38,25 @@ export async function GET() {
         latestByBatch.set(d.batchId, d);
       }
     }
-    const donations = Array.from(latestByBatch.values()).map((d) => ({
-      ...d,
-      productName: (d as any).productName ?? store.get(d.batchId)?.productName ?? 'Perishable Inventory Lot',
-    }));
+
+    const donations = Array.from(latestByBatch.values())
+      .filter((d: any) => d && (d.irsDeductionAmount !== undefined || d.totalCostBasis !== undefined || d.costBasisTotal !== undefined))
+      .map((d: any) => ({
+        manifestId: d.manifestId ?? `MANIFEST-${Date.now()}`,
+        batchId: d.batchId ?? '',
+        productName: d.productName ?? store.get(d.batchId)?.productName ?? 'Perishable Inventory Lot',
+        generatedAtIso: d.generatedAtIso ?? d.donatedAtIso ?? new Date().toISOString(),
+        recipientFoodBankId: d.recipientFoodBankId ?? d.foodBankId ?? 'FB-LA-REGIONAL',
+        recipientFoodBankName: d.recipientFoodBankName ?? d.foodBankName ?? '501(c)(3) Partner Food Bank',
+        donatedQuantityUnits: d.donatedQuantityUnits ?? d.quantityUnits ?? 0,
+        fairMarketValuePerUnit: d.fairMarketValuePerUnit ?? d.unitFairMarketValue ?? 0,
+        totalFairMarketValue: d.totalFairMarketValue ?? 0,
+        costBasisTotal: d.costBasisTotal ?? d.totalCostBasis ?? 0,
+        irsDeductionAmount: d.irsDeductionAmount ?? 0,
+        irsFormReference: d.irsFormReference ?? 'IRS Form 8283, Section A',
+        triggerReason: d.triggerReason ?? 'effective_dte_below_threshold',
+      }));
+
     const totalDeductions = donations.reduce(
       (sum, d) => sum + (d.irsDeductionAmount || 0),
       0

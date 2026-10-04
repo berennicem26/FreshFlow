@@ -88,7 +88,7 @@ export default function DonationsPage() {
               <DollarSign className="w-5 h-5 text-purple-400" />
             </div>
             <p className="text-3xl font-extrabold text-white mt-2">
-              ${summary.totalDeductionsUsd.toFixed(2)}
+              ${(summary.totalDeductionsUsd ?? 0).toFixed(2)}
             </p>
             <p className="text-xs text-neutral-400 mt-1">
               IRC §170(e)(3) Cost + Half-Appreciation Capped
@@ -180,27 +180,27 @@ export default function DonationsPage() {
                       <td className="py-4 px-4">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-neutral-800 text-neutral-200 font-bold">
                           <Package className="w-3 h-3 text-neutral-400" />
-                          {d.donatedQuantityUnits} units
+                          {d.donatedQuantityUnits ?? 0} units
                         </span>
                       </td>
 
                       <td className="py-4 px-4 font-semibold text-neutral-300">
-                        ${d.totalFairMarketValue.toFixed(2)}
+                        ${(d.totalFairMarketValue ?? 0).toFixed(2)}
                       </td>
 
                       <td className="py-4 px-4 text-neutral-400">
-                        ${d.costBasisTotal.toFixed(2)}
+                        ${(d.costBasisTotal ?? 0).toFixed(2)}
                       </td>
 
                       <td className="py-4 px-4">
                         <span className="text-emerald-400 font-bold text-sm">
-                          ${d.irsDeductionAmount.toFixed(2)}
+                          ${(d.irsDeductionAmount ?? 0).toFixed(2)}
                         </span>
                       </td>
 
                       <td className="py-4 px-6 font-sans">
                         <span className="inline-block px-2.5 py-1 rounded text-[11px] font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                          {d.irsFormReference}
+                          {d.irsFormReference ?? 'IRS Form 8283, Section A'}
                         </span>
                       </td>
                     </tr>
